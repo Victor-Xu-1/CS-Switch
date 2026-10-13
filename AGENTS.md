@@ -20,6 +20,8 @@ Updates must retain the active runtime until candidate validation succeeds.
 Database rollback selects the matching prior data generation; it must not open
 newer data with an older binary. Runtime and state ownership must be explicit.
 Published artifacts may not contain upstream proprietary code or user data.
+The first-party source is MIT-licensed and the repository is intended to be
+public. This does not relicense the original application or external services.
 
 Version policy: first release v0.0.1. Every PR advances exactly once from its
 current integration base: v0.0.1 -> v0.0.2, with patch/minor carrying at 99.

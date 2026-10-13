@@ -1,8 +1,13 @@
 # CS-Switch
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 ## 中文快速使用
 
 首版 **v0.0.1**。工作台支持中文 / English，语言选择会保留。
+
+自 **v0.0.2** 起，CS-Switch 的自有源码以 [MIT 许可证](LICENSE)开源。
+原版 Claude Science / Operon 不随项目分发，其许可证与服务条款保持独立。
 
 - 首次使用：自动查找本机安装，也可填写程序路径，点击“连接程序并启动”。
   原版程序和数据会保留，使用独立受管理副本；导入已有数据前需退出原版。
@@ -185,7 +190,14 @@ the next number against the PR base. Display versions and Git tags use a `v`
 prefix; package.json stores the numeric authority. Claude Science's upstream
 version and its automatic updates do not increment the CS-Switch version.
 
-## Distribution boundary
+## License and distribution boundary
 
-This private repository currently has no redistribution license. Upstream
-software remains subject to its own terms. See [third-party notices](docs/third-party-notices.md).
+CS-Switch's first-party source is available under the [MIT License](LICENSE).
+Dependencies retain their own licenses. Claude Science / Operon binaries,
+application code, assets, trademarks and services are not relicensed by this
+project and are not included in the repository. See
+[third-party notices](docs/third-party-notices.md).
+
+The `private: true` package flag only prevents accidental npm publication; it
+does not limit the MIT license or public GitHub access. This release does not
+publish a package to npm.
