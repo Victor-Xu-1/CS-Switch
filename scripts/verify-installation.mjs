@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { initialize } from '../src/core/config.mjs';
 import { serve } from '../src/server.mjs';
-import { hashFile, atomicJson } from '../src/core/files.mjs';
+import { hashFile, atomicJson, readJson } from '../src/core/files.mjs';
 import { Profiles } from '../src/gateway/profiles.mjs';
 
 const [binary, home] = process.argv.slice(2);
@@ -12,6 +12,7 @@ const providerIndex = process.argv.indexOf('--provider-home');
 const providerHome = providerIndex >= 0 ? process.argv[providerIndex + 1] : null;
 if (providerIndex >= 0 && (!providerHome || providerHome.startsWith('--'))) throw Error('--provider-home requires the authorized source state directory.');
 const keepRunning = process.argv.includes('--keep-running');
+if (await readJson(join(home, 'state.json'), null)) throw Error('Installation verification requires an unused state home; existing data is never replaced.');
 const beforeHash = await hashFile(binary);
 const config = await initialize(home, { port: 19970, appPort: 19971, modelPort: 19972, sandboxPort: 19973,
   network: { proxy: process.env.HTTPS_PROXY || null } });

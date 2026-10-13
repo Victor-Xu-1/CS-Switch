@@ -12,7 +12,7 @@ import { serve } from '../src/server.mjs';
 // explicitly named local model fixture. No external model request or user key.
 const [home, releaseHome, releaseId] = process.argv.slice(2);
 if (!home || !releaseHome || !releaseId) throw Error('Usage: preview-workbench.mjs NEW_HOME RELEASE_DIRECTORY RELEASE_ID');
-if ((await readJson(join(home, 'state.json'), null))?.active) throw Error('Preview requires an unused state home.');
+if (await readJson(join(home, 'state.json'), null)) throw Error('Preview requires an unused state home.');
 const config = await initialize(home, { port: 19960, appPort: 19961, modelPort: 19962, sandboxPort: 19963,
   network: { proxy: process.env.HTTPS_PROXY || null } });
 config.update.autoApply = false;
