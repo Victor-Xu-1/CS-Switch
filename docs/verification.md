@@ -1,5 +1,36 @@
 # Verification records — CS-Switch (Claude science-Switch)
 
+## v0.0.4 — original background tool and artifact-lineage acceptance
+
+The v0.0.3 task succeeded, but its runtime log subsequently exposed DeepSeek 400
+errors in background input-reference extraction. A focused real request reproduced
+the default-thinking/forced-tool mismatch. After preserving Claude's omitted
+thinking mode as explicitly disabled for DeepSeek, the same request returned
+HTTP 200 and the required `report_input_files` result. Explicit adaptive thinking
+remains enabled. No forced tool is dropped and no automatic retry is introduced.
+
+An additional real task ran through the same freshly attached standalone 0.1.60
+application, now with the v0.0.4 transport:
+
+- Frame: `2ff8e655-113e-4560-94ec-69ad801ac0bb`, completed
+  `2026-10-13T05:06:11.967Z`.
+- Python read the actual previous CSV version
+  `9eea2195-129e-412c-bb43-5639bf5bf090`, computed **4.0**, and saved
+  `cs-switch-lineage.csv`, version `7bbd9eb0-ff9f-4ff7-b2de-8c73104275d8`.
+- Stored artifact: 9 bytes; checksum
+  `23b54ff915839815851af7c57c4caae56e169e5022c7cd5b95470fbe63cdfed1`.
+- A read-only database query verified the saved output/input dependency edge,
+  reference name `cs-switch-live.csv` and dependency mapping `consensus: both`.
+- Fresh runtime logs contained no provider/dependency-extraction failure for
+  this task. Only the inspected Python call was approved once.
+- 33 focused tests passed; syntax checked 53 first-party source files; version
+  validation confirmed v0.0.3 -> v0.0.4.
+
+Reproduction uses `verify-provider-contract.mjs STATE_HOME` (one explicitly
+invoked paid inference, no execution tools or state mutation) and
+`start-live-verification.mjs ORIGIN --source-artifact ACTUAL_VERSION_ID` for the
+original task path. Neither script fabricates or hardcodes a scientific result.
+
 ## v0.0.3 — quality and latest independent executable acceptance
 
 Date: 2026-10-13. The official `latest` pointer was read again and returned
@@ -21,7 +52,7 @@ by a real original-application task:
   `2026-10-13T04:51:22.801Z`.
 - Actual Python mean of [2,4,6]: **4**; actual R mean: **4**.
 - Chemistry MCP `pubchem_search_compounds`: returned `cids: [702]` for ethanol.
-- Original artifact ID: `9eea2195-129e-412c-bb43-5639bf5bf090`.
+- Original artifact version reference: `9eea2195-129e-412c-bb43-5639bf5bf090`.
 - `cs-switch-live.csv`: exactly 12 bytes, `value\n2\n4\n6\n`;
   SHA-256 `4bf52ef5f6a4bb4d36efed5a331d561e4f0a7d2d25f77f48345f89ba364374e0`.
 - Python/R requests were inspected and allowed **once**, not conversation,

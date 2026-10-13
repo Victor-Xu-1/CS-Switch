@@ -74,6 +74,11 @@ Anthropic adaptive-thinking requests map to the selected provider's reasoning
 control: DeepSeek `thinking`, Qwen `enable_thinking`, or OpenAI
 `reasoning_effort`. The provider/model must support that control. A provider
 rejection is visible; the gateway does not silently switch models or protocols.
+When Claude omits thinking (including its background dependency extraction), the
+DeepSeek adapter explicitly disables it. DeepSeek's default is thinking enabled,
+which rejects forced/required tool selection. The adapter preserves the requested
+tool and arguments rather than dropping that requirement or silently retrying.
+Explicit adaptive/enabled thinking requests remain enabled.
 
 Anthropic-hosted web search is represented as an ordinary function for an
 OpenAI provider and executed by the gateway's explicit DuckDuckGo HTML search

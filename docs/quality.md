@@ -85,3 +85,30 @@ No Lighthouse score, full WCAG certification or independent jury assessment is
 claimed. Screenshots from fixture previews are labelled as such and must not be
 used as proof of real external-model inference. Operational screenshots and task
 data remain outside the public repository.
+
+## Round 4 — post-task log audit and v0.0.4
+
+The main v0.0.3 scientific task succeeded, but a later log audit found HTTP 400
+errors in the original application's background input-reference extraction.
+That meant its full background contract had not passed even though its visible
+task/CSV had. This finding was not waived or hidden.
+
+DeepSeek enables thinking by default and rejects named/required tool choices in
+that mode; see its [official API contract](https://api-docs.deepseek.com/api/create-chat-completion/).
+Claude's background request omitted thinking while requiring a named extraction
+tool. v0.0.4 now explicitly preserves that non-thinking request. Explicit thinking
+still stays enabled; no tool requirement is dropped and no retry is added.
+
+- Regression first: the new protocol case failed before the change.
+- Real provider reproduction: HTTP 400 with thinking/tool-choice error; after
+  the fix, HTTP 200 with the requested tool and correct `input.csv` argument.
+- 33 affected protocol/gateway/connection/search-continuation/version checks
+  passed across five selected files. No unrelated application/update/UI suites.
+- A second real 0.1.60 task read the prior saved CSV, calculated mean 4.0 and
+  saved a new 9-byte CSV. Read-only inspection confirmed an actual dependency
+  edge to the input version and `consensus: both`, not merely an LLM claim.
+- The fresh runtime log had no provider or dependency-extraction failures for
+  this test. The original sandbox and single-call authorization remained intact.
+
+These results close the discovered default-mode defect, not a claim that all
+possible providers, modalities, future releases or scientific workflows are proven.

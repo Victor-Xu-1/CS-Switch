@@ -75,7 +75,10 @@ export function toOpenAI(input, profile) {
     if (profile.provider === 'deepseek') body.thinking = { type: 'enabled' };
     else if (profile.provider === 'qwen') body.enable_thinking = true;
     else body.reasoning_effort = effort === 'max' ? 'high' : effort;
-  } else if (input.thinking?.type === 'disabled') {
+  } else if (input.thinking?.type === 'disabled' || profile.provider === 'deepseek') {
+    // Claude's background/forced-tool requests omit thinking. DeepSeek enables
+    // it by default and rejects named/required tools in that mode. Preserve the
+    // source request's non-thinking semantics explicitly, never drop tool choice.
     if (profile.provider === 'deepseek') body.thinking = { type: 'disabled' };
     else if (profile.provider === 'qwen') body.enable_thinking = false;
   }
