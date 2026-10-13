@@ -4,6 +4,16 @@ import { toOpenAI, fromOpenAI, toolInput, usage } from '../src/protocol/messages
 import { events } from '../src/protocol/sse.mjs';
 
 const profile = { model: 'test-model' };
+test('DeepSeek preserves an omitted Anthropic thinking mode for forced background tools', () => {
+  const input = { max_tokens: 100, messages: [{ role: 'user', content: 'Report the input file.' }],
+    tools: [{ name: 'report_input_files', input_schema: { type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'] } }],
+    tool_choice: { type: 'tool', name: 'report_input_files' } };
+  const deepseek = { provider: 'deepseek', model: 'test-model' };
+  assert.deepEqual(toOpenAI(input, deepseek).thinking, { type: 'disabled' });
+  assert.deepEqual(toOpenAI({ ...input, thinking: { type: 'disabled' } }, deepseek).thinking, { type: 'disabled' });
+  assert.deepEqual(toOpenAI({ ...input, thinking: { type: 'adaptive' }, tool_choice: { type: 'auto' } }, deepseek).thinking, { type: 'enabled' });
+  assert.equal(toOpenAI(input, profile).thinking, undefined);
+});
 test('plot images inside tool results preserve pixels and tool-call association', () => {
   const result = toOpenAI({ max_tokens: 100, messages: [
     { role: 'assistant', content: [{ type: 'tool_use', id: 'plot-1', name: 'python', input: {} }] },
