@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CS-Switch</title>
+  <link rel="stylesheet" href="/_bridge/style.css">
+  <script type="module" src="/_bridge/app.js"></script>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/_bridge/" aria-label="CS-Switch"><span class="brand-icon" aria-hidden="true">⇄</span>CS-Switch</a>
+    <div class="languages" role="group" aria-label="Language / 语言">
+      <button type="button" data-language="en" lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-language="zh" lang="zh-CN" aria-pressed="false">中文</button>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow" data-i18n="eyebrow"></p>
+      <h1 data-i18n="headline"></h1>
+      <p data-i18n="intro"></p>
+    </section>
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+    <section id="application-setup" class="panel application-setup" hidden aria-labelledby="application-title">
+      <h2 id="application-title" data-i18n="applicationTitle"></h2>
+      <p id="application-help" class="help"></p>
+      <form id="installation-form" hidden>
+        <label for="installations" data-i18n="detectedApps"></label><select id="installations"></select>
+        <label for="binary-path" data-i18n="binaryPath"></label><input id="binary-path" required spellcheck="false" placeholder="/home/user/apps/operon/operon">
+        <details class="inline-details"><summary data-i18n="importData"></summary>
+          <label for="data-path" data-i18n="dataPath"></label><input id="data-path" spellcheck="false" placeholder="/home/user/apps/operon/data">
+          <p class="help" data-i18n="dataHelp"></p>
+        </details>
+        <button id="attach-application" type="submit" class="primary wide" data-i18n="attachApplication"></button>
+        <p class="help" data-i18n="platformHelp"></p>
+      </form>
+      <button id="start-application" type="button" class="primary wide" hidden data-i18n="startApplication"></button>
+      <p id="application-progress" class="help" role="status"></p>
+    </section>
+    <section id="model-connection" class="panel connection" aria-labelledby="connection-title">
+      <div class="card-heading"><div><p class="eyebrow" data-i18n="connection"></p><h2 id="connection-title"></h2></div><span id="connection-badge" class="badge"></span></div>
+      <div id="connected" hidden>
+        <div class="model-summary"><span class="model-icon" aria-hidden="true">✓</span><div><strong id="active-name"></strong><span id="active-model"></span></div></div>
+        <p id="connection-proof" class="help"></p>
+        <button id="open-workspace" class="primary wide" type="button" disabled data-i18n="open"></button>
+        <p id="open-help" class="help center"></p>
+        <button id="change-model" class="text-button" type="button" data-i18n="change"></button>
+      </div>
+      <form id="provider-form" hidden>
+        <fieldset id="connection-fields">
+          <div id="saved-row" hidden><label for="saved-profile" data-i18n="saved"></label><select id="saved-profile"></select></div>
+          <div class="fields">
+            <div><label for="provider" data-i18n="provider"></label><select id="provider" required></select></div>
+            <div><label for="model" data-i18n="model"></label><input id="model" list="model-options" maxlength="256" required autocomplete="off" spellcheck="false" data-i18n-placeholder="modelPlaceholder"><datalist id="model-options"></datalist></div>
+          </div>
+          <label for="api-key" data-i18n="key"></label>
+          <div class="key-field"><input id="api-key" type="password" autocomplete="new-password" spellcheck="false" data-i18n-placeholder="keyPlaceholder"><button id="show-key" class="text-button" type="button" aria-pressed="false" data-i18n="show"></button></div>
+          <p id="key-help" class="help"></p>
+          <details id="endpoint-settings" class="inline-details">
+            <summary data-i18n="endpointSettings"></summary>
+            <label for="base-url" data-i18n="baseUrl"></label><input id="base-url" type="url" required spellcheck="false" placeholder="https://api.example.com/v1">
+            <label for="name" data-i18n="profileName"></label><input id="name" maxlength="128">
+          </details>
+          <button type="submit" id="connect" class="primary wide" data-i18n="connect"></button>
+          <p class="help center" data-i18n="charge"></p>
+          <button type="button" id="cancel-edit" class="text-button" hidden data-i18n="cancelEdit"></button>
+        </fieldset>
+      </form>
+      <div id="loading" class="loading" role="status" data-i18n="loading"></div>
+    </section>
+    <section class="readiness" aria-label="Workspace readiness / 工作区状态">
+      <div class="readiness-heading"><strong id="readiness-summary"></strong><button id="refresh" type="button" class="text-button" data-i18n="refresh"></button></div>
+      <div id="readiness-items" class="readiness-items" aria-live="polite"></div>
+      <p id="readiness-help" class="help"></p>
+    </section>
+    <details id="advanced" class="advanced">
+      <summary data-i18n="advanced"></summary>
+      <div class="advanced-body">
+        <h2 data-i18n="applicationTitle"></h2><p id="application-version" class="help"></p>
+        <button id="application-open" type="button" class="secondary" disabled data-i18n="openOriginal"></button>
+        <button id="stop-application" type="button" class="secondary" disabled data-i18n="stopApplication"></button>
+        <p class="help" data-i18n="stopHelp"></p>
+        <h2 data-i18n="updates"></h2><p id="update-policy" class="help"></p>
+        <dl><div><dt data-i18n="version"></dt><dd id="runtime-version"></dd></div><div><dt data-i18n="lastCheck"></dt><dd id="last-check"></dd></div><div><dt data-i18n="releaseStatus"></dt><dd id="update-state"></dd></div></dl>
+        <p id="update-detail" class="detail"></p>
+        <button id="check-update" type="button" class="secondary" data-i18n="checkUpdate"></button>
+        <h3 data-i18n="environmentDetails"></h3><div id="environment-detail" class="help"></div>
+        <h3 data-i18n="rollback"></h3><p class="help" data-i18n="rollbackHelp"></p>
+        <button id="rollback" type="button" class="secondary" disabled data-i18n="restore"></button>
+        <h3 data-i18n="limitsTitle"></h3><p class="help" data-i18n="limits"></p>
+      </div>
+    </details>
+    <footer><span id="bridge-version">CS-Switch</span><span data-i18n="independent"></span></footer>
+  </main>
+  <dialog id="rollback-dialog" aria-labelledby="rollback-title"><h2 id="rollback-title" data-i18n="rollbackTitle"></h2><p data-i18n="rollbackHelp"></p><div class="actions"><button id="confirm-rollback" class="primary" data-i18n="restore"></button><button id="cancel-rollback" class="secondary" data-i18n="cancel"></button></div></dialog>
+</body>
+</html>
