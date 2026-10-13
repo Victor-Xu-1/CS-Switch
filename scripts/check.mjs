@@ -10,4 +10,4 @@ async function walk(root) {
   }
 }
 for (const root of ['src', 'web', 'scripts']) await walk(root);
-console.log(`Syntax checked ${count} changed source files.`);
+console.log(`Syntax checked ${count} first-party source files (syntax only, not a global test run).`);

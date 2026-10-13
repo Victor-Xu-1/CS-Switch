@@ -2,16 +2,18 @@ import { $, t, date, element, api, notice, errorKey } from './ui.js';
 
 export function renderSettings(status) {
   const envs = status?.environments?.environments || [];
+  const pending = Boolean(status?.runtime && (!status.environments && status.environmentCheck?.phase === 'checking'));
   const checks = [
     [t('workspace'), status?.runtime ? 'ready' : 'unavailable'],
     [t('sandbox'), status?.runtime?.sandbox ? 'ready' : 'unavailable'],
-    ...['python', 'r'].map(name => [name === 'r' ? 'R' : 'Python', envs.find(e => e.name === name)?.status || 'unavailable']),
-    [t('mcp'), status?.environments?.mcp?.status || 'unavailable'],
+    ...['python', 'r'].map(name => [name === 'r' ? 'R' : 'Python', envs.find(e => e.name === name)?.status || (pending ? 'preparing' : 'unavailable')]),
+    [t('mcp'), status?.environments?.mcp?.status || (pending ? 'preparing' : 'unavailable')],
   ];
   const ready = checks.every(([, state]) => state === 'ready');
   const stopped = !status?.runtime && status?.state?.runtimeDesired === 'stopped';
-  $('readiness-summary').textContent = t(!status ? 'envChecking' : stopped ? 'standby' : ready ? 'envReady' : 'envAttention');
-  $('readiness-help').textContent = t(stopped ? 'startHint' : ready ? 'readinessHelp' : 'readinessIssue');
+  $('readiness-summary').textContent = t(!status || pending ? 'envChecking' : stopped ? 'standby' : ready ? 'envReady' : 'envAttention');
+  $('readiness-help').textContent = t(pending ? 'checkingTools' : stopped ? 'startHint' : ready ? 'readinessHelp' : 'readinessIssue');
+  $('readiness-items').setAttribute('aria-busy', String(pending));
   $('readiness-items').replaceChildren(...checks.map(([label, state]) => {
     if (!status) state = 'preparing';
     const known = stopped ? 'standby' : ['ready', 'failed', 'unavailable'].includes(state) ? state : 'preparing';
@@ -19,7 +21,7 @@ export function renderSettings(status) {
   }));
   if (!status) return;
   $('runtime-version').textContent = status.runtime?.version || t('unavailable');
-  $('bridge-version').textContent = `CS-Switch v${status.bridgeVersion}`;
+  $('bridge-version').textContent = `v${status.bridgeVersion}`;
   $('update-policy').textContent = t(status.policy.autoApply ? 'autoPolicy' : 'manualPolicy', { hours: status.policy.intervalMs / 3600000 });
   $('last-check').textContent = status.discovery?.checkedAt ? date(status.discovery.checkedAt) : t('neverChecked');
   let phase = status.discovery?.phase || status.state.update.phase;
@@ -43,7 +45,7 @@ export function bindSettings(refresh) {
     $('check-update').disabled = true;
     $('check-update').textContent = t('checkingUpdate');
     try {
-      const result = await api('check', {});
+      const result = await api('check', {}, { timeoutMs: 600000 });
       await refresh();
       notice(result.error ? 'errorUpdate' : 'updateChecked', Boolean(result.error));
     } catch (error) { notice(errorKey(error), true); }
@@ -53,7 +55,7 @@ export function bindSettings(refresh) {
   $('cancel-rollback').addEventListener('click', () => $('rollback-dialog').close());
   $('confirm-rollback').addEventListener('click', async () => {
     $('confirm-rollback').disabled = true;
-    try { await api('rollback', {}); $('rollback-dialog').close(); await refresh(); notice('restored'); }
+    try { await api('rollback', {}, { timeoutMs: 600000 }); $('rollback-dialog').close(); await refresh(); notice('restored'); }
     catch (error) { notice(errorKey(error), true); }
     finally { $('confirm-rollback').disabled = false; }
   });

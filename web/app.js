@@ -1,12 +1,19 @@
 import { $, t, date, element, api, notice, errorKey, languages } from './ui.js';
 import { renderSettings, bindSettings } from './settings.js';
 import { renderApplication, bindApplication, startApplication, isApplicationBusy } from './application.js';
+import { LatestRequest } from './latest.js';
 
 let profiles = [], templates = [], active = null, editing = null, status = null;
 let editingVisible = false, loading = true, connecting = false;
+let connectionController;
 
 // Suggestions are editable IDs, never a silent model substitution.
 const suggestions = { deepseek: ['deepseek-v4-pro', 'deepseek-flash'] };
+function renderKeyHint() {
+  let changed = false;
+  try { changed = editing?.hasApiKey && new URL($('base-url').value).href.replace(/\/+$/, '') !== editing.baseUrl; } catch { /* Address validation owns malformed URLs. */ }
+  $('key-help').textContent = t(changed ? 'keyNewEndpoint' : editing?.hasApiKey ? 'keySaved' : $('provider').value === 'ollama' ? 'localKey' : 'keyHelp');
+}
 function renderOptions() {
   for (const option of $('provider').options) {
     const template = templates.find(item => item.id === option.value);
@@ -23,18 +30,20 @@ function render() {
   $('model-connection').hidden = Boolean(status && !status.state.active);
   $('connected').hidden = loading || editingVisible || !verified;
   $('provider-form').hidden = loading || (!editingVisible && verified);
-  $('connection-title').textContent = t(!editingVisible && verified ? 'connected' : 'setup');
+  $('connection-title').textContent = t(loading ? 'loading' : !editingVisible && verified ? 'connected' : 'setup');
   $('connection-badge').textContent = t(editingVisible && active ? 'currentKept' : verified ? 'verified' : active ? 'configured' : 'notConnected');
   $('connection-badge').classList.toggle('success', verified && !editingVisible);
   $('cancel-edit').hidden = !verified;
   $('connect').textContent = t(connecting ? 'connecting' : 'connect');
   $('connection-fields').disabled = connecting;
+  $('cancel-test').hidden = !connecting;
+  $('provider-form').setAttribute('aria-busy', String(connecting));
   $('connect').disabled = connecting || templates.length === 0 || !status?.runtime;
   $('change-model').disabled = Boolean(status?.runtime?.activeFrames || status?.inFlight);
-  $('open-workspace').textContent = t(status?.runtime ? 'open' : 'startAndOpen');
-  $('open-workspace').disabled = !status?.state?.active || !verified || isApplicationBusy(status);
-  $('open-help').textContent = t(status?.runtime?.sandbox ? 'readyHint' : status?.state?.active ? 'startHint' : 'waitHint');
-  $('key-help').textContent = t(editing?.hasApiKey ? 'keySaved' : $('provider').value === 'ollama' ? 'localKey' : 'keyHelp');
+  $('open-workspace').textContent = t(!status ? 'loading' : status.runtime ? 'open' : 'startAndOpen');
+  $('open-workspace').disabled = !status?.state?.active || !verified || isApplicationBusy(status) || Boolean(status?.runtime && !status.runtime.sandbox);
+  $('open-help').textContent = t(!status ? 'envChecking' : status.runtime?.sandbox ? 'readyHint' : status.state?.active ? 'startHint' : 'waitHint');
+  renderKeyHint();
   $('show-key').textContent = t($('api-key').type === 'password' ? 'show' : 'hide');
   if (active) {
     $('active-name').textContent = active.name;
@@ -45,6 +54,7 @@ function render() {
   renderApplication(status, verified);
 }
 function choose(profile = null) {
+  for (const field of $('provider-form').querySelectorAll('[aria-invalid]')) field.removeAttribute('aria-invalid');
   editing = profile;
   $('provider').value = profile?.provider || templates[0]?.id || '';
   const template = templates.find(item => item.id === $('provider').value);
@@ -57,7 +67,7 @@ function choose(profile = null) {
   $('api-key').type = 'password';
   $('show-key').setAttribute('aria-pressed', 'false');
   $('saved-profile').value = profile?.id || '';
-  $('endpoint-settings').open = !template?.baseUrl;
+  $('endpoint-settings').open = !template?.baseUrl && !profile?.baseUrl;
   render();
 }
 async function loadProfiles() {
@@ -72,11 +82,10 @@ async function loadProfiles() {
   loading = false;
   choose(active);
 }
-async function refresh() {
-  try { status = await api('status'); }
-  catch (error) { status = null; render(); throw error; }
-  render();
-}
+const statusRequest = new LatestRequest(signal => api('status', undefined, { signal }), next => { status = next; render(); },
+  () => { status = null; render(); });
+const refresh = ({ force = false } = {}) => statusRequest.run(force);
+const refreshAfterAction = () => refresh({ force: true });
 $('provider').addEventListener('change', () => {
   const template = templates.find(item => item.id === $('provider').value);
   choose({ provider: template.id, name: template.name, baseUrl: template.baseUrl });
@@ -91,32 +100,47 @@ $('show-key').addEventListener('click', () => {
   render();
 });
 $('base-url').addEventListener('invalid', () => { $('endpoint-settings').open = true; });
+$('base-url').addEventListener('input', renderKeyHint);
+$('provider-form').addEventListener('input', event => event.target.removeAttribute('aria-invalid'));
+$('cancel-test').addEventListener('click', () => connectionController?.abort());
 $('provider-form').addEventListener('submit', async event => {
   event.preventDefault();
   if (connecting) return;
   connecting = true; notice(null); render();
+  connectionController = new AbortController();
+  let committed = false;
   const template = templates.find(item => item.id === $('provider').value);
   try {
-    await api('connect', {
+    const result = await api('connect', {
       id: editing?.id, provider: template.id, protocol: template.protocol,
       name: $('name').value, baseUrl: $('base-url').value, model: $('model').value,
       apiKey: $('api-key').value, apiKeyEnv: editing?.apiKeyEnv || '',
-    });
+    }, { signal: connectionController.signal });
+    committed = true; active = result.profile;
     $('api-key').value = '';
     editingVisible = false;
     await loadProfiles();
-    await refresh();
+    await refreshAfterAction();
     notice('connectedNotice');
     $('open-workspace').focus();
-  } catch (error) { notice(errorKey(error), true); }
-  finally { connecting = false; render(); }
+  } catch (error) {
+    if (error.code === 'cancelled') {
+      $('api-key').value = '';
+      try { await loadProfiles(); await refreshAfterAction(); notice('testCancelled'); }
+      catch { notice('cancelUnknown', true, { focus: true }); }
+    } else {
+      const field = error.code === 'invalid_endpoint' ? 'base-url' : error.code === 'credential_endpoint_changed' || error.status === 401 ? 'api-key' : error.code === 'invalid_model' ? 'model' : null;
+      if (field) $(field).setAttribute('aria-invalid', 'true');
+      notice(committed ? 'connectedNeedsRefresh' : errorKey(error), true, { focus: true });
+    }
+  } finally { connecting = false; connectionController = null; render(); }
 });
 $('open-workspace').addEventListener('click', async () => {
-  if (!status?.runtime && !await startApplication(refresh)) return;
+  if (!status?.runtime && !await startApplication(refreshAfterAction)) return;
   window.location.assign('/');
 });
-bindSettings(refresh);
-bindApplication(refresh);
+bindSettings(refreshAfterAction);
+bindApplication(refreshAfterAction);
 languages(render);
 render();
 try { await Promise.all([loadProfiles(), refresh()]); }
@@ -125,7 +149,7 @@ finally { loading = false; render(); }
 // Readiness refresh never performs a paid model request or overwrites form input.
 let lastRefresh = Date.now();
 setInterval(() => {
-  if (!document.hidden && !connecting && (isApplicationBusy(status) || Date.now() - lastRefresh >= 30000)) {
+  if (!document.hidden && !connecting && (isApplicationBusy(status) || status?.environmentCheck?.phase === 'checking' || Date.now() - lastRefresh >= 30000)) {
     lastRefresh = Date.now();
     void refresh().catch(error => notice(errorKey(error), true));
   }

@@ -67,6 +67,7 @@ export class Profiles {
     return { templates, activeId: data.activeId, profiles: data.profiles.map(p => this.safe(p)) };
   }
   async draft(input) {
+      invariant(input && typeof input === 'object' && !Array.isArray(input), 'invalid_profile', 'A provider profile object is required.');
       const data = await this.store();
       const existing = input.id ? data.profiles.find(p => p.id === input.id) : undefined;
       invariant(!input.id || existing, 'profile_missing', 'Provider profile not found.', 404);
@@ -75,10 +76,14 @@ export class Profiles {
       invariant(['openai', 'anthropic'].includes(protocol), 'invalid_protocol', 'Select OpenAI Chat Completions or Anthropic Messages.');
       invariant(typeof input.model === 'string' && input.model.trim().length > 0 && input.model.length <= 256, 'invalid_model', 'A model identifier is required.');
       invariant(input.apiKey === undefined || (typeof input.apiKey === 'string' && input.apiKey.length < 8192 && !/[\r\n]/.test(input.apiKey)), 'invalid_key', 'Invalid API key.');
-      const apiKeyEnv = input.apiKeyEnv || '';
+      const apiKeyEnv = input.apiKey ? '' : input.apiKeyEnv || '';
       invariant(!apiKeyEnv || /^[A-Z_][A-Z0-9_]{0,127}$/.test(apiKeyEnv), 'invalid_env', 'Invalid API key environment variable.');
+      const baseUrl = endpoint(input.baseUrl);
+      invariant(!existing || existing.baseUrl === baseUrl || (!existing.secret && !existing.apiKeyEnv) ||
+        (!apiKeyEnv && (Boolean(input.apiKey) || input.clearKey)), 'credential_endpoint_changed',
+      'Re-enter a credential for the new endpoint. Saved credentials cannot be forwarded to a different address.');
       const profile = { id: existing?.id || randomUUID(), name: String(input.name || input.provider || protocol).slice(0, 128),
-        provider: template?.id || `${protocol}-compatible`, protocol, model: input.model.trim(), baseUrl: endpoint(input.baseUrl),
+        provider: template?.id || `${protocol}-compatible`, protocol, model: input.model.trim(), baseUrl,
         apiKeyEnv, secret: input.clearKey ? null : existing?.secret || null, createdAt: existing?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
       if (input.apiKey) profile.secret = await this.encrypt(input.apiKey);
       if (apiKeyEnv) profile.secret = null;

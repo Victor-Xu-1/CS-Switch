@@ -1,4 +1,44 @@
-# Verification record — CS-Switch v0.0.1
+# Verification records — CS-Switch (Claude science-Switch)
+
+## v0.0.3 — quality and latest independent executable acceptance
+
+Date: 2026-10-13. The official `latest` pointer was read again and returned
+`8db2454a`, the independently distributed Linux x64 executable **0.1.60**.
+Its downloaded provenance records official RSA signature verification. The
+standalone source executable SHA-256 before and after attachment is:
+`94c7f9c50aa8a47935cc754d2e4b3b7d7cb186ef48e4826df353997322003108`.
+This is not merely an existing extracted runtime being reused: the installation
+API re-extracted and validated the standalone executable into a new isolated data
+home, then stopped/restarted it. The original binary stayed unchanged.
+
+The revised workbench opened this original frontend. The existing authorized
+DeepSeek profile was re-encrypted in the isolated home at its unchanged API
+address; no key entered Git or logs. A real connection reply succeeded, followed
+by a real original-application task:
+
+- Model: `deepseek-v4-pro` (external inference, not a local fixture).
+- Frame: `f06f55a2-6254-4aaa-9b69-7d4ea13eef05`; completed at
+  `2026-10-13T04:51:22.801Z`.
+- Actual Python mean of [2,4,6]: **4**; actual R mean: **4**.
+- Chemistry MCP `pubchem_search_compounds`: returned `cids: [702]` for ethanol.
+- Original artifact ID: `9eea2195-129e-412c-bb43-5639bf5bf090`.
+- `cs-switch-live.csv`: exactly 12 bytes, `value\n2\n4\n6\n`;
+  SHA-256 `4bf52ef5f6a4bb4d36efed5a331d561e4f0a7d2d25f77f48345f89ba364374e0`.
+- Python/R requests were inspected and allowed **once**, not conversation,
+  project or global permission. Sandbox active; Python/R and 20 MCP environment
+  checks passed. Original frontend displayed the real task and artifact.
+
+The initial test-home name exceeded the upstream Unix socket path limit and was
+rejected before activation. A new short home resolved this host-path constraint;
+the failed state was not deleted. The workbench now explains the specific fix.
+
+Focused verification: 49 tests selected by changed files, imported dependants and
+explicit UI/HTTP/shared-lock contracts; all passed. Syntax checked 52 first-party
+source files. Version check confirmed exactly v0.0.2 -> v0.0.3. Browser evidence
+and quality limits are in [quality](quality.md). Production revision verification
+is a separate post-merge gate, not implied by candidate acceptance.
+
+## v0.0.1 — original integration baseline
 
 Verification date: 2026-10-13. This is an integration release, not a guarantee
 about every future upstream version, external provider or scientific method.

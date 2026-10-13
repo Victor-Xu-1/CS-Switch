@@ -1,6 +1,7 @@
 name: Focused CS-Switch checks
 on:
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
@@ -22,6 +23,7 @@ jobs:
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/check-version.mjs --base "$PR_BASE_SHA"
-      - run: npm run test:protocol
-      - run: npm run test:update
-      - run: npm run test:workbench
+      - name: Changed modules and direct contracts only
+        env:
+          TEST_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/test-scope.mjs "$TEST_BASE_SHA"

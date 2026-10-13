@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CS-Switch</title>
+  <title>CS-Switch (Claude science-Switch)</title>
   <link rel="stylesheet" href="/_bridge/style.css">
   <script type="module" src="/_bridge/app.js"></script>
 </head>
 <body>
   <header>
-    <a class="brand" href="/_bridge/" aria-label="CS-Switch"><span class="brand-icon" aria-hidden="true">⇄</span>CS-Switch</a>
+    <a class="brand" href="/_bridge/" aria-label="CS-Switch (Claude science-Switch)"><span class="brand-icon" aria-hidden="true">⇄</span>CS-Switch</a>
     <div class="languages" role="group" aria-label="Language / 语言">
       <button type="button" data-language="en" lang="en" aria-pressed="true">EN</button>
       <button type="button" data-language="zh" lang="zh-CN" aria-pressed="false">中文</button>
@@ -21,7 +21,7 @@
       <h1 data-i18n="headline"></h1>
       <p data-i18n="intro"></p>
     </section>
-    <div id="notice" role="status" aria-live="polite" hidden></div>
+    <div id="notice" role="status" aria-live="polite" tabindex="-1" hidden></div>
     <section id="application-setup" class="panel application-setup" hidden aria-labelledby="application-title">
       <h2 id="application-title" data-i18n="applicationTitle"></h2>
       <p id="application-help" class="help"></p>
@@ -52,20 +52,23 @@
           <div id="saved-row" hidden><label for="saved-profile" data-i18n="saved"></label><select id="saved-profile"></select></div>
           <div class="fields">
             <div><label for="provider" data-i18n="provider"></label><select id="provider" required></select></div>
-            <div><label for="model" data-i18n="model"></label><input id="model" list="model-options" maxlength="256" required autocomplete="off" spellcheck="false" data-i18n-placeholder="modelPlaceholder"><datalist id="model-options"></datalist></div>
+            <div><label for="model" data-i18n="model"></label><input id="model" list="model-options" maxlength="256" required autocomplete="off" spellcheck="false" aria-describedby="model-help notice" data-i18n-placeholder="modelPlaceholder"><datalist id="model-options"></datalist></div>
           </div>
+          <p id="model-help" class="help" data-i18n="modelHelp"></p>
           <label for="api-key" data-i18n="key"></label>
-          <div class="key-field"><input id="api-key" type="password" autocomplete="new-password" spellcheck="false" data-i18n-placeholder="keyPlaceholder"><button id="show-key" class="text-button" type="button" aria-pressed="false" data-i18n="show"></button></div>
+          <div class="key-field"><input id="api-key" type="password" autocomplete="new-password" spellcheck="false" aria-describedby="key-help notice" data-i18n-placeholder="keyPlaceholder"><button id="show-key" class="text-button" type="button" aria-pressed="false" data-i18n="show"></button></div>
           <p id="key-help" class="help"></p>
           <details id="endpoint-settings" class="inline-details">
             <summary data-i18n="endpointSettings"></summary>
-            <label for="base-url" data-i18n="baseUrl"></label><input id="base-url" type="url" required spellcheck="false" placeholder="https://api.example.com/v1">
+            <label for="base-url" data-i18n="baseUrl"></label><input id="base-url" type="url" required spellcheck="false" aria-describedby="endpoint-help notice" placeholder="https://api.example.com/v1">
+            <p id="endpoint-help" class="help" data-i18n="endpointHelp"></p>
             <label for="name" data-i18n="profileName"></label><input id="name" maxlength="128">
           </details>
           <button type="submit" id="connect" class="primary wide" data-i18n="connect"></button>
           <p class="help center" data-i18n="charge"></p>
           <button type="button" id="cancel-edit" class="text-button" hidden data-i18n="cancelEdit"></button>
         </fieldset>
+        <button id="cancel-test" type="button" class="secondary wide" hidden data-i18n="cancelTest"></button>
       </form>
       <div id="loading" class="loading" role="status" data-i18n="loading"></div>
     </section>
@@ -91,7 +94,7 @@
         <h3 data-i18n="limitsTitle"></h3><p class="help" data-i18n="limits"></p>
       </div>
     </details>
-    <footer><span id="bridge-version">CS-Switch</span><span data-i18n="independent"></span></footer>
+    <footer><div><span>CS-Switch (Claude science-Switch)</span><span id="bridge-version"></span></div><span data-i18n="independent"></span></footer>
   </main>
   <dialog id="rollback-dialog" aria-labelledby="rollback-title"><h2 id="rollback-title" data-i18n="rollbackTitle"></h2><p data-i18n="rollbackHelp"></p><div class="actions"><button id="confirm-rollback" class="primary" data-i18n="restore"></button><button id="cancel-rollback" class="secondary" data-i18n="cancel"></button></div></dialog>
 </body>

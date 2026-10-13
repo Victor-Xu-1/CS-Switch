@@ -1,6 +1,6 @@
 {
   "name": "cs-switch",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -16,7 +16,7 @@
     "version:next": "node scripts/bump-version.mjs",
     "test:protocol": "node --test tests/protocol.test.mjs tests/gateway.test.mjs tests/server-tools.test.mjs",
     "test:update": "node --test tests/releases.test.mjs tests/update.test.mjs",
-    "test:workbench": "node --test tests/connection.test.mjs tests/workbench.test.mjs tests/application.test.mjs tests/version.test.mjs",
+    "test:workbench": "node --test tests/connection.test.mjs tests/workbench.test.mjs tests/application.test.mjs tests/version.test.mjs tests/readiness.test.mjs tests/quality.test.mjs",
     "start": "node src/cli.mjs serve"
   },
   "dependencies": {

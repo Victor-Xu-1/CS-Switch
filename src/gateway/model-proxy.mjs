@@ -14,7 +14,7 @@ export function modelUrl(profile) {
 export class ModelProxy {
   active = 0;
   constructor(profiles, options = {}) { this.profiles = profiles; this.timeoutMs = options.timeoutMs || 120000; this.limit = options.limit || 8; this.fetch = options.fetch || fetch; }
-  async dispatch(input, request, response, selectedProfile = null) {
+  async dispatch(input, request, response, selectedProfile = null, externalSignal = null) {
     invariant(this.active < this.limit, 'busy', 'Model gateway concurrency limit reached. Retry when a request completes.', 429);
     const profile = selectedProfile || await this.profiles.active();
     validateMessages(input);
@@ -27,9 +27,10 @@ export class ModelProxy {
     } else if (profile.apiKey) headers.authorization = `Bearer ${profile.apiKey}`;
     const controller = new AbortController();
     const disconnected = () => { if (!response.writableEnded) controller.abort(); };
-    response.on('close', disconnected);
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(this.timeoutMs)]);
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(this.timeoutMs), ...(externalSignal ? [externalSignal] : [])]);
+    signal.throwIfAborted();
     invariant(this.active < this.limit, 'busy', 'Model gateway concurrency limit reached.', 429);
+    response.on('close', disconnected);
     this.active++;
     try {
       if (profile.protocol === 'openai') {

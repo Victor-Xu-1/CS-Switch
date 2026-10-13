@@ -1,4 +1,4 @@
-# CS-Switch
+# CS-Switch (Claude science-Switch)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -98,6 +98,8 @@ reported as requiring a platform adapter, never falsely shown as compatible.
 `CS_SWITCH_HOME` (or `--home PATH`) chooses the state directory. The default is
 `~/.local/share/cs-switch`. Run one service per home; systemd uses `flock` for
 ownership. No credentials or runtime data belong inside the source checkout.
+Keep this path short: the original application's Unix socket paths must fit
+within 108 bytes. An overlong path is reported before activation.
 
 ## Connect a model
 
@@ -118,7 +120,10 @@ The interface intentionally separates **configured**, **connection tested**,
 request or example session is not evidence that a real task succeeded.
 
 Keys are never returned to the browser. A blank key field preserves the saved
-key for that profile. Language changes never translate model IDs or scientific
+key only while the API address remains unchanged. A new address requires explicit
+key entry so saved credentials cannot be forwarded accidentally. Cancelling a
+connection test aborts its request; the workbench reloads the actual saved state.
+Language changes never translate model IDs or scientific
 data. English is the default for a fresh/invalid preference.
 
 ## Network and environment setup
@@ -155,18 +160,24 @@ the older snapshot. Generations are not automatically deleted. See
 for trust boundaries. The installation/validation record is in
 [verification](docs/verification.md).
 
+The [quality standard and audit](docs/quality.md) records interface, accessibility,
+security and responsiveness checks, including their limits. Award names are
+quality aspirations, not claims of recognition.
+
 ## Focused development checks
 
 ```bash
 npm run check
 npm run check:version
-npm run test:protocol
-npm run test:update
-npm run test:workbench
+node scripts/test-scope.mjs YOUR_40_CHARACTER_BASE_COMMIT_SHA --list
+node scripts/test-scope.mjs YOUR_40_CHARACTER_BASE_COMMIT_SHA
 ```
 
-These exercise only CS-Switch's changed protocol, gateway and update contracts.
-They do not run the upstream scientific application's global test suite.
+The selector follows changed files and their import dependants, plus explicit
+HTTP/UI/lifecycle relationships. Review `--list` first. PR CI uses its exact base
+commit and runs only affected contracts; it never defaults to a global suite.
+Syntax checking is separate from executing tests. Group scripts remain available
+for an explicitly scoped protocol, update or workbench investigation.
 The `scripts/verify-scientific-tools.mjs` integration tool uses a clearly marked
 local model-wire fixture with real application tool execution. It is not a real
 external-model or scientific-quality benchmark.
@@ -175,6 +186,16 @@ external-model or scientific-quality benchmark.
 environment checks. `verify-installation.mjs ORIGINAL_BINARY NEW_ISOLATED_HOME`
 tests attachment, stop/start and frontend access with isolated data, not a paid
 model request.
+
+For explicitly authorized real-model acceptance, append
+`--provider-home EXISTING_CS_SWITCH_HOME --keep-running` to the installation
+verifier. This reuses the active provider at its unchanged address, sends one
+short connection probe, and keeps the isolated original frontend open for a real
+task. Provider charges apply; credentials stay encrypted outside Git. Stop with
+SIGTERM after the task is idle. Without these flags no provider is copied/called.
+`preview-workbench.mjs NEW_HOME RELEASE_DIRECTORY RELEASE_ID` is a separate,
+clearly labelled local fixture for UI error/cancellation checks, not real-model
+acceptance.
 
 ## Version and PR policy
 

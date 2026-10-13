@@ -18,7 +18,7 @@ const runtime = new RuntimeProcess(config, '');
 runtime.port = config.appPort;
 runtime.release = manifest;
 const checks = await runtime.smoke({ requireEnvironments: true });
-for (const path of ['/_bridge/', '/_bridge/app.js', '/_bridge/i18n.js', '/_bridge/ui.js', '/_bridge/settings.js', '/_bridge/application.js', '/_bridge/style.css']) {
+for (const path of ['/_bridge/', '/_bridge/app.js', '/_bridge/i18n.js', '/_bridge/ui.js', '/_bridge/settings.js', '/_bridge/application.js', '/_bridge/latest.js', '/_bridge/style.css']) {
   const result = await fetch(origin + path);
   assert.equal(result.status, 200, path);
   await result.body.cancel();

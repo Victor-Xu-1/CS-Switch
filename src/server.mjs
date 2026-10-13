@@ -7,6 +7,7 @@ import { ModelProxy } from './gateway/model-proxy.mjs';
 import { Connection } from './gateway/connection.mjs';
 import { RuntimeProcess } from './runtime/process.mjs';
 import { Application } from './runtime/application.mjs';
+import { ReadinessCache } from './runtime/readiness.mjs';
 import { UpdateManager } from './update/manager.mjs';
 import { Discovery } from './update/discovery.mjs';
 import { ReverseProxy } from './gateway/reverse-proxy.mjs';
@@ -28,7 +29,8 @@ export async function serve(config) {
   const build = await buildIdentity(), { version } = build;
   const connection = new Connection(profiles, model, manager);
   const application = new Application(config, manager);
-  const context = { config, profiles, model, runtime, manager, discovery, connection, application, version, build };
+  const readiness = new ReadinessCache(() => runtime.environments());
+  const context = { config, profiles, model, runtime, manager, discovery, connection, application, readiness, version, build };
   const fail = (response, error) => {
     if (!response.headersSent && !response.destroyed) json(response, error.status || 500, { error: publicError(error) });
     else response.destroy();
