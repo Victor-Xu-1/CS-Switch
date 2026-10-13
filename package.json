@@ -1,9 +1,9 @@
 {
   "name": "cs-switch",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=22.19.0"
   },

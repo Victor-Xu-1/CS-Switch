@@ -71,7 +71,8 @@ update or matched-snapshot rollback path, not an unrelated data replacement.
 
 ## Publishing
 
-Publish only this source tree. Use a private repository unless the owner
-chooses another visibility/license. Do not package the upstream application,
+Publish only this source tree. The owner selected public MIT distribution for
+CS-Switch's first-party code. Review tracked files and reachable Git history for
+secrets and private data before publication. Do not package the upstream application,
 the verification state directories or user credentials. A GitHub source push
 is distinct from a release artifact and from a passed external-model test.

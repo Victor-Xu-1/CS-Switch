@@ -1,5 +1,9 @@
 # Third-party boundaries
 
+CS-Switch's first-party source is licensed under MIT; see [LICENSE](../LICENSE).
+That grant covers CS-Switch only and does not grant rights to redistribute or
+relicense the original Claude Science / Operon application or third-party services.
+
 CS-Switch is independent of Anthropic. Claude Science, Operon and other names
 identify the external software/protocols being integrated. Their trademarks,
 binaries, application code, assets and licenses remain their owners'. They are
