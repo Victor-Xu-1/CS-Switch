@@ -26,7 +26,8 @@ export class Connection {
       'runtime_busy', 'Wait for the current task or update to finish before changing models.', 409);
     invariant(await this.manager.runtime.idle(), 'runtime_busy', 'Wait for the current task to finish before changing models.', 409);
   }
-  async connect(input) {
+  async connect(input, { signal } = {}) {
+    signal?.throwIfAborted();
     invariant(!this.busy, 'connection_busy', 'A connection test is already running.', 409);
     this.busy = true;
     const output = new ProbeResponse();
@@ -36,20 +37,27 @@ export class Connection {
       await this.idle();
       const draft = await this.profiles.draft(input);
       const profile = await this.profiles.resolve(draft);
+      signal?.throwIfAborted();
       await this.model.dispatch({ model: 'connection-test', max_tokens: 64,
         thinking: { type: 'disabled' }, messages: [{ role: 'user', content: 'Reply with OK.' }], stream: false },
-      { headers: {} }, output, profile);
+      { headers: {} }, output, profile, signal);
       await finished(output);
+      signal?.throwIfAborted();
       const result = output.message();
       invariant(result.type === 'message' && result.stop_reason === 'end_turn' &&
         Array.isArray(result.content) && result.content.some(block => block.type === 'text' && block.text?.trim()),
       'connection_invalid', 'The provider did not return a complete text response.', 502);
-      await this.idle();
+      // Reserve synchronously before the awaited final idle check. Application
+      // start/stop and update operations use this same lock.
+      invariant(!this.manager.busy && !this.manager.maintenance && this.model.active === 0,
+        'runtime_busy', 'An application operation began during the test. Retry after it completes.', 409);
+      this.manager.busy = true;
       this.manager.maintenance = true;
       try {
         invariant(await this.manager.runtime.idle(), 'runtime_busy', 'A task started during the test. Retry after it completes.', 409);
+        signal?.throwIfAborted();
         return await this.profiles.commitDraft(() => draft, true, { at: new Date().toISOString(), model: profile.model });
-      } finally { this.manager.maintenance = false; }
+      } finally { this.manager.maintenance = false; this.manager.busy = false; }
     } finally { output.destroy(); this.busy = false; }
   }
 }

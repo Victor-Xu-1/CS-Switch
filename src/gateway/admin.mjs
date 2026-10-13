@@ -15,6 +15,7 @@ const assets = new Map([
   ['/_bridge/ui.js', ['ui.js', 'text/javascript; charset=utf-8']],
   ['/_bridge/settings.js', ['settings.js', 'text/javascript; charset=utf-8']],
   ['/_bridge/application.js', ['application.js', 'text/javascript; charset=utf-8']],
+  ['/_bridge/latest.js', ['latest.js', 'text/javascript; charset=utf-8']],
   ['/_bridge/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/provider-settings.html', ['index.html', 'text/html; charset=utf-8']],
 ]);
@@ -33,9 +34,8 @@ export async function admin(request, response, context) {
   if (path === '/_bridge/api/status' && request.method === 'GET') {
     let runtime = null;
     try { if (manager.runtime.child) runtime = await manager.runtime.status(); } catch { /* explicit null means unavailable */ }
-    let environments = null;
-    try { if (runtime) environments = await manager.runtime.environments(); } catch { /* unavailable is shown, never ready */ }
-    json(response, 200, { bridgeVersion: context.version, bridgeRevision: context.build.revision, sourceDirty: context.build.dirty, environments, application: context.application.job, state: await manager.state(), discovery: await readJson(join(config.home, 'discovery.json'), null),
+    const { value: environments, ...environmentCheck } = context.readiness.snapshot(runtime ? `${runtime.pid}:${runtime.version}` : null);
+    json(response, 200, { bridgeVersion: context.version, bridgeRevision: context.build.revision, sourceDirty: context.build.dirty, environments, environmentCheck, application: context.application.job, state: await manager.state(), discovery: await readJson(join(config.home, 'discovery.json'), null),
       policy: config.update, runtime: runtime ? { version: runtime.version, activeFrames: runtime.active_frames, sandbox: runtime.sandbox_active, boot: runtime.boot } : null,
       inFlight: model.active, releases: await listReleases(config.home) });
   } else if (path === '/_bridge/api/providers' && request.method === 'GET') json(response, 200, await profiles.list());
@@ -43,7 +43,13 @@ export async function admin(request, response, context) {
   else if (path === '/_bridge/api/application/attach' && request.method === 'POST') json(response, 202, await context.application.attach(await body(request, 8192)));
   else if (path === '/_bridge/api/application/start' && request.method === 'POST') json(response, 200, await context.application.launch());
   else if (path === '/_bridge/api/application/stop' && request.method === 'POST') json(response, 200, await context.application.stop());
-  else if (path === '/_bridge/api/connect' && request.method === 'POST') json(response, 200, { profile: await context.connection.connect(await body(request, 65536)) });
+  else if (path === '/_bridge/api/connect' && request.method === 'POST') {
+    const controller = new AbortController();
+    const cancel = () => { if (!response.writableEnded) controller.abort(); };
+    response.once('close', cancel);
+    try { json(response, 200, { profile: await context.connection.connect(await body(request, 65536), { signal: controller.signal }) }); }
+    finally { response.off('close', cancel); }
+  }
   else if (path === '/_bridge/api/check' && request.method === 'POST') json(response, 200, await discovery.check());
   else if (path === '/_bridge/api/apply' && request.method === 'POST') {
     const { id } = await body(request, 4096);

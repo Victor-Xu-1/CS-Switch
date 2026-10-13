@@ -12,13 +12,13 @@ export function element(tag, text, className = '') {
   node.className = className;
   return node;
 }
-export async function api(path, data) {
-  let response;
+export async function api(path, data, options = {}) {
+  let response, result;
   try {
-    response = await fetch(`/_bridge/api/${path}`, { signal: AbortSignal.timeout(130000),
+    response = await fetch(`/_bridge/api/${path}`, { signal: AbortSignal.any([AbortSignal.timeout(options.timeoutMs || 130000), ...(options.signal ? [options.signal] : [])]),
       ...(data === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json', 'x-cs-switch': '1' }, body: JSON.stringify(data) }) });
-  } catch (cause) { throw Object.assign(new Error('Service unavailable'), { code: cause.name === 'TimeoutError' ? 'timeout' : 'network' }); }
-  const result = await response.json();
+    result = await response.json();
+  } catch (cause) { throw Object.assign(new Error('Service unavailable'), { code: options.signal?.aborted ? 'cancelled' : cause.name === 'TimeoutError' ? 'timeout' : cause.name === 'SyntaxError' ? 'invalid_response' : 'network' }); }
   if (!response.ok) throw Object.assign(new Error(result.error?.message), { code: result.error?.code, status: response.status });
   return result;
 }
@@ -28,10 +28,12 @@ export function errorKey(error) {
   if (['timeout', 'request_timeout'].includes(error.code)) return 'errorTimeout';
   if (error.code === 'invalid_endpoint') return 'errorEndpoint';
   if (error.code === 'invalid_model') return 'errorModel';
+  if (error.code === 'credential_endpoint_changed') return 'errorEndpointKey';
   if (error.code === 'source_running') return 'errorSourceRunning';
   if (error.code === 'installation_platform') return 'platformHelp';
   if (['adapter_required', 'binary_layout', 'bytecode_unsupported'].includes(error.code)) return 'errorAdapter';
   if (['installation_path', 'ENOENT', 'data_source'].includes(error.code)) return 'errorAppPath';
+  if (error.code === 'data_path_too_long') return 'errorDataPath';
   if (['no_runtime', 'runtime_boot_failed', 'runtime_boot_timeout', 'runtime_identity', 'sandbox_required'].includes(error.code)) return 'errorAppStart';
   if (error.code === 'key_unavailable') return 'errorCredentials';
   if ([401, 403].includes(error.status)) return 'errorKey';
@@ -40,11 +42,14 @@ export function errorKey(error) {
   if (['connection_invalid', 'upstream_protocol', 'upstream_empty', 'upstream_truncated'].includes(error.code)) return 'errorResponse';
   return 'errorGeneric';
 }
-export function notice(key, isError = false) {
+export function notice(key, isError = false, { focus = false } = {}) {
   noticeState = key ? { key, isError } : null;
   $('notice').hidden = !key;
   $('notice').textContent = key ? t(key) : '';
   $('notice').classList.toggle('error', isError);
+  $('notice').setAttribute('role', isError ? 'alert' : 'status');
+  $('notice').setAttribute('aria-live', isError ? 'assertive' : 'polite');
+  if (key && focus) $('notice').focus();
 }
 export function localize() {
   document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';

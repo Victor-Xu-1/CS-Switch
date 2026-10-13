@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { Profiles } from '../src/gateway/profiles.mjs';
 import { ModelProxy } from '../src/gateway/model-proxy.mjs';
 import { Connection } from '../src/gateway/connection.mjs';
+import { Application } from '../src/runtime/application.mjs';
 
 async function setup(t, handler) {
   const home = await mkdtemp(join(tmpdir(), 'cs-switch-connection-'));
@@ -57,12 +58,77 @@ test('an active task blocks a model change before any paid request', async t => 
   let calls = 0;
   const { connection, manager } = await setup(t, async () => { calls++; return reply(); });
   manager.runtime.idle = async () => false;
-  await assert.rejects(connection.connect(draft), /current task/);
+  await assert.rejects(connection.connect(draft), { code: 'runtime_busy' });
   assert.equal(calls, 0);
 });
 test('a task starting during the test leaves the original model selected', async t => {
   const { profiles, connection, manager } = await setup(t, async () => { manager.runtime.idle = async () => false; return reply(); });
-  await assert.rejects(connection.connect(draft), /current task/);
+  await assert.rejects(connection.connect(draft), { code: 'runtime_busy' });
   assert.equal((await profiles.active()).model, 'model-old');
   assert.equal(manager.maintenance, false);
+});
+test('a changed endpoint cannot receive a saved key without explicit re-entry', async t => {
+  let sent = 0;
+  const { profiles, original, connection } = await setup(t, async () => { sent++; return reply(); });
+  await assert.rejects(connection.connect({ ...draft, id: original.id, apiKey: '', baseUrl: 'https://different.test/v1' }),
+    { code: 'credential_endpoint_changed' });
+  assert.equal(sent, 0);
+  assert.equal((await profiles.active()).baseUrl, 'https://example.test/v1');
+});
+test('a cancelled connection never activates a draft or sends a request', async t => {
+  let sent = 0;
+  const { profiles, connection } = await setup(t, async () => { sent++; return reply(); });
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(connection.connect(draft, { signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(sent, 0); assert.equal((await profiles.active()).model, 'model-old');
+});
+test('connection commit reserves the shared operation lock before waiting for idle', async t => {
+  const { connection, manager } = await setup(t, async () => reply());
+  let calls = 0, blocked = false;
+  manager.runtime.idle = async () => {
+    if (++calls === 2) {
+      try { new Application({}, manager).lock(); }
+      catch (error) { blocked = error.code === 'update_busy'; }
+    }
+    return true;
+  };
+  await connection.connect(draft);
+  assert.equal(blocked, true); assert.equal(manager.busy, false);
+});
+test('cancelling an in-flight probe aborts the transport and preserves the profile', async t => {
+  let started;
+  const waiting = new Promise(resolve => { started = resolve; });
+  const { profiles, connection } = await setup(t, async (_url, { signal }) => {
+    started();
+    return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+  });
+  const controller = new AbortController();
+  const running = connection.connect(draft, { signal: controller.signal });
+  await waiting; controller.abort();
+  await assert.rejects(running, { name: 'AbortError' });
+  assert.equal((await profiles.active()).model, 'model-old');
+  assert.equal(connection.busy, false);
+});
+
+test('environment credentials cannot follow an address change; explicit replacement is accepted', async t => {
+  const { profiles, original } = await setup(t, async () => reply());
+  await profiles.save({ ...draft, id: original.id, apiKey: '', apiKeyEnv: 'CS_SWITCH_TEST_KEY' });
+  await assert.rejects(profiles.draft({ ...draft, id: original.id, apiKey: '', apiKeyEnv: 'CS_SWITCH_TEST_KEY', baseUrl: 'https://different.test/v1' }), { code: 'credential_endpoint_changed' });
+  const replacement = await profiles.resolve(await profiles.draft({ ...draft, id: original.id, apiKeyEnv: 'CS_SWITCH_TEST_KEY', baseUrl: 'https://different.test/v1' }));
+  assert.equal(replacement.apiKeyEnv, ''); assert.equal(replacement.apiKey, 'new-test-key');
+  for (const invalid of [null, [], 'profile']) await assert.rejects(profiles.draft(invalid), { code: 'invalid_profile' });
+});
+
+test('native Anthropic body cancellation terminates the probe and preserves the active model', async t => {
+  let started;
+  const reading = new Promise(resolve => { started = resolve; });
+  const { profiles, connection } = await setup(t, async () => new Response(new ReadableStream({
+    pull() { started(); },
+  }), { headers: { 'content-type': 'application/json' } }));
+  const controller = new AbortController();
+  const running = connection.connect({ ...draft, provider: 'anthropic-compatible', protocol: 'anthropic' }, { signal: controller.signal });
+  await reading; controller.abort();
+  await assert.rejects(running, { name: 'AbortError' });
+  assert.equal((await profiles.active()).model, 'model-old');
+  assert.equal(connection.busy, false);
 });

@@ -57,6 +57,19 @@ test receipt. Failed tests leave the previous profile and key unchanged. Input
 usage excludes cache hits in the Anthropic-facing response, preventing double
 counting; original-application price estimates are not provider billing evidence.
 
+The final idle check and activation reserve the same operation lock as updates
+and application start/stop. Disconnecting or cancelling a test aborts provider
+transport, including native response-body reads. Cancellation before the atomic
+commit leaves the prior profile unchanged; if completion raced with cancellation,
+the UI reloads the actual saved state instead of promising an unverified rollback.
+Changing a saved profile's API address requires an explicit replacement key (or
+explicit removal), including credentials supplied through an environment variable.
+
+Environment readiness is a coalesced background check with a 15-second freshness
+window. Results belong to a specific process identity; restarting cannot reuse
+the previous process's evidence. Core status is not delayed by MCP checks. The
+browser coalesces polling and discards superseded responses after a mutation.
+
 Anthropic adaptive-thinking requests map to the selected provider's reasoning
 control: DeepSeek `thinking`, Qwen `enable_thinking`, or OpenAI
 `reasoning_effort`. The provider/model must support that control. A provider
