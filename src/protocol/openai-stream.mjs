@@ -4,7 +4,7 @@ import { events, sendEvent } from './sse.mjs';
 import { usage, stopReason, toolInput } from './messages.mjs';
 
 export async function translateStream(body, response, model, options = {}) {
-  let nextIndex = options.startIndex || 0, finish = null, finalUsage = {}, seenContent = false;
+  let nextIndex = options.startIndex || 0, finish = null, finalUsage = {}, seenContent = false, bytes = 0;
   const content = [];
   let current = null;
   const tools = new Map();
@@ -27,6 +27,8 @@ export async function translateStream(body, response, model, options = {}) {
     await sendEvent(response, 'content_block_delta', { index: current.index, delta: type === 'thinking' ? { type: 'thinking_delta', thinking: value } : { type: 'text_delta', text: value } });
   };
   for await (const event of events(body)) {
+    bytes += Buffer.byteLength(event.data);
+    invariant(bytes <= 8 * 1024 * 1024, 'upstream_protocol', 'Provider stream exceeds its total response limit.', 502);
     if (event.data === '[DONE]') break;
     let value;
     try { value = JSON.parse(event.data); } catch { invariant(false, 'upstream_protocol', 'Malformed JSON in provider stream.', 502); }
@@ -42,28 +44,24 @@ export async function translateStream(body, response, model, options = {}) {
       await closeCurrent();
       const index = call.index ?? 0;
       let tool = tools.get(index);
-      if (!tool) { tool = { index: nextIndex++, id: '', name: '', arguments: '', emitted: false, pending: '' }; tools.set(index, tool); }
+      if (!tool) { tool = { id: '', name: '', arguments: '' }; tools.set(index, tool); }
       if (call.id) tool.id += call.id;
       if (call.function?.name) tool.name += call.function.name;
-      if (call.function?.arguments) { tool.arguments += call.function.arguments; tool.pending += call.function.arguments; }
+      if (call.function?.arguments) tool.arguments += call.function.arguments;
       invariant(tool.arguments.length < 4 * 1024 * 1024, 'upstream_protocol', 'Tool arguments exceed limit.', 502);
-      if (!tool.emitted && tool.id && tool.name) {
-        tool.emitted = true; seenContent = true;
-        tool.type = options.serverTools?.has(tool.name) ? 'server_tool_use' : 'tool_use';
-        await sendEvent(response, 'content_block_start', { index: tool.index, content_block: { type: tool.type, id: tool.id, name: tool.name, input: {} } });
-      }
-      if (tool.emitted && tool.pending) {
-        await sendEvent(response, 'content_block_delta', { index: tool.index, delta: { type: 'input_json_delta', partial_json: tool.pending } });
-        tool.pending = '';
-      }
+      if (tool.id && tool.name) seenContent = true;
     }
     if (choice.finish_reason) finish = choice.finish_reason;
   }
   invariant(finish && seenContent, 'upstream_truncated', 'Provider stream ended before a complete response.', 502);
   await closeCurrent();
   for (const tool of tools.values()) {
-    invariant(tool.emitted, 'upstream_protocol', 'Incomplete streamed tool identity.', 502);
+    invariant(tool.id && tool.name, 'upstream_protocol', 'Incomplete streamed tool identity.', 502);
     const parsed = toolInput(tool.arguments);
+    tool.index = nextIndex++;
+    tool.type = options.serverTools?.has(tool.name) ? 'server_tool_use' : 'tool_use';
+    await sendEvent(response, 'content_block_start', { index: tool.index, content_block: { type: tool.type, id: tool.id, name: tool.name, input: {} } });
+    await sendEvent(response, 'content_block_delta', { index: tool.index, delta: { type: 'input_json_delta', partial_json: tool.arguments } });
     content.push({ type: tool.type, id: tool.id, name: tool.name, input: parsed });
     await sendEvent(response, 'content_block_stop', { index: tool.index });
   }

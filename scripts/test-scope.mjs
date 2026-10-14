@@ -11,6 +11,7 @@ const contracts = [
   [/^web\/application\.js$/, ['application']],
   [/^src\/(server\.mjs|gateway\/(admin|reverse-proxy)\.mjs)$/, ['gateway', 'connection', 'application', 'readiness']],
   [/^src\/gateway\/connection\.mjs$/, ['application', 'update']],
+  [/^src\/protocol\/pdf-worker\.mjs$/, ['task-input']],
   [/^scripts\/(bump-version|check-version)\.mjs$|^package(?:-lock)?\.json$/, ['version']],
   [/^scripts\/test-scope\.mjs$|^\.github\/workflows\//, ['test-scope']],
 ];
@@ -56,7 +57,7 @@ function run() {
   }
   const selected = selectTests(changed, graph, files.filter(path => /^tests\/.*\.test\.mjs$/.test(path)));
   console.log(JSON.stringify({ base, changed, selected }, null, 2));
-  if (!process.argv.includes('--list') && selected.length) execFileSync(process.execPath, ['--test', ...selected], { stdio: 'inherit' });
+  if (!process.argv.includes('--list') && selected.length) execFileSync(process.execPath, ['--test', '--test-concurrency=2', ...selected], { stdio: 'inherit' });
   else if (!selected.length) console.log('No affected automated contracts. Browser/runtime acceptance remains separate.');
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) run();

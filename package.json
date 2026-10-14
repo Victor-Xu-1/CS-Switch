@@ -1,6 +1,6 @@
 {
   "name": "cs-switch",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -21,7 +21,11 @@
   },
   "dependencies": {
     "acorn": "8.19.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "cheerio": "1.2.0",
+    "ipaddr.js": "2.5.0",
+    "pdfjs-dist": "6.4.299",
     "tar": "7.5.22",
     "undici": "8.11.2"
   }

@@ -1,5 +1,64 @@
 # Verification records — CS-Switch (Claude science-Switch)
 
+## v0.0.5 — task capabilities and original 0.1.62
+
+Date: 2026-10-14. Official `latest` moved to `7c91ff2f` / **0.1.62** during this
+work. The old adapter correctly retained 0.1.60 when an exported policy alias
+disappeared. A semantic producer/return-contract match now handles the new layout,
+still requiring a unique complete match. The standalone 0.1.62 executable was
+attached in isolated state, started, stopped and restarted. Sandbox, original
+frontend assets, Python/R and 20 MCP environment checks passed. Its original
+SHA-256 stayed `4ca53e7a770934743aa8a3b2b16b1d6df073bbb1b9543d58af2454f065cf16f8`.
+The revised adapter also passed against a freshly extracted 0.1.60 copy.
+
+### Real task evidence
+
+- DeepSeek `deepseek-v4-pro`: original 0.1.62 frame
+  `2fade481-f286-4ec6-81f2-9fa8b6ab8ff3`, completed
+  `2026-10-14T11:15:38.176Z`. Search returned eight results; page reading returned
+  the actual PubMed About content; Python wrote JSON and original save_artifacts
+  registered version `9bcb371b-f693-4ca5-a797-10ca2c56e588`.
+  File: 153 bytes, SHA-256
+  `1c5384c9ee45be77a61ea5309da304cf71f04fc6772929d886548ee0201e8c6f`.
+- User's current MiMo `mimo-v2.6-flash`: original 0.1.62 frame
+  `9f43febd-94e8-47d1-8509-5be2ea33624f`, completed
+  `2026-10-14T11:18:37.770Z`. Search, page read, Python and artifact saving passed;
+  version `2b89448e-1e24-4eb2-8eee-a7cb26713f80`, 256 bytes, SHA-256
+  `825e6d36d8cf9c0ad502cec36a6765e87849f4a732017314d2b3bf568f2f46b8`.
+- Both tasks used the original frontend and approval/execution path. Browser
+  controls, stored original tool receipts and actual artifact bytes were inspected.
+  The short acceptance requests explicitly selected thinking off; enabled-mode
+  parameter preservation is separately covered by protocol regressions.
+- Real DeepSeek OpenAI and MiMo OpenAI calls read plain-text and generated PDF
+  measurement inputs, returning the actual value **37** through schema validation.
+- Real DeepSeek **Anthropic-compatible** requests to its documented same-host
+  endpoint passed PDF input/schema validation and web fetch with actual page text.
+  No original active production profile was switched by these probes.
+
+### Failures found and resolved
+
+The first original task exposed a missing reader in the original advertised
+toolset. The bridge now adds its reader only on search-enabled task requests.
+Later turns/reviewers still lost fetch evidence: sanitized message-shape tracing
+proved original 0.1.62 removed the new hosted fetch calls/results while retaining
+search. A private bounded source-evidence cache and normal source links now restore
+that evidence before later inference, without changing the original application.
+The successful tasks above were rerun after this fix; the earlier failed/stopped
+attempts remain in isolated data and are not represented as passing runs.
+
+The host proxy supplies synthetic 198.18.x.x DNS answers. Public reading now uses
+fixed HTTPS DNS through the configured proxy and pins the validated public IP,
+retaining Host/TLS identity. Private-address exceptions were not added. Real NCBI
+page reads passed alongside focused HTTP-compression checks. PDF parsing, compressed
+size limits, schema rejection, cancellation, mixed tools, split streamed tool
+names and evidence restoration after restart have focused regressions.
+
+Checks use `node scripts/test-scope.mjs 16d5c67c16cdcb511dd345be47b7705d245a6753`
+and exact changed-module runs. Test concurrency is bounded to two processes after
+a host WSL launch-timeout incident; no global upstream suite or WSL shutdown was
+used. Full capability boundaries are in [task capabilities](task-capabilities.md).
+Deployment revision/health remains a separate post-merge check.
+
 ## v0.0.4 — original background tool and artifact-lineage acceptance
 
 The v0.0.3 task succeeded, but its runtime log subsequently exposed DeepSeek 400
