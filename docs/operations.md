@@ -14,6 +14,7 @@ Under `CS_SWITCH_HOME`:
 | `downloads/`, `adopted/` | Official package receipts and isolated preparation |
 | `discovery.json` | Latest update-check outcome, including blockers |
 | `logs/` | Runtime logs, never intentionally containing provider keys |
+| `web-evidence/` | Bounded private page-evidence cache for task/reviewer continuity |
 | `inbox/` | Optional locally reviewed prepared-runtime descriptors |
 
 Back up providers.json and providers.key together. Never upload either to
@@ -52,6 +53,13 @@ on an old PID file or process-name matching.
   package network configuration. TLS validation and sandboxing remain enabled.
 - **search_unavailable**: the search site is blocked, challenged or changed its
   response format. The gateway reports this as a tool failure.
+- **url_not_allowed / url_not_in_prior_context**: page reading rejected a private
+  destination, domain-policy violation, or URL not present in prior user/tool context.
+- **document_ocr_required / document_limit**: use an OCR/vision workflow for scanned
+  pages or a smaller input within the documented page/text limits.
+- **structured_output_invalid**: the provider's JSON failed the requested schema;
+  no successful structured response was sent. Choose a capable model or correct
+  the request; the bridge does not fabricate missing fields.
 
 ## Safe rollback
 

@@ -20,7 +20,7 @@ export async function serve(config) {
   invariant(process.platform === 'linux', 'platform', 'Run the service inside Linux/WSL.');
   const token = randomBytes(32).toString('hex');
   const net = network(config);
-  const profiles = new Profiles(config.home), model = new ModelProxy(profiles, { fetch: net.fetch });
+  const profiles = new Profiles(config.home), model = new ModelProxy(profiles, { fetch: net.fetch, proxy: config.network?.proxy, home: config.home });
   const runtime = new RuntimeProcess(config, token);
   let reverse;
   const manager = new UpdateManager(config, runtime, { isGatewayIdle: () => model.active === 0 && (!reverse || reverse.requests === 0), quiesce: () => reverse?.disconnect() });

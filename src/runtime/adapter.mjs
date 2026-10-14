@@ -26,14 +26,20 @@ const isFunction = node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowF
 export function adaptBackend(source) {
   invariant(!source.includes('/* CS-Switch adapter v1 */'), 'already_adapted', 'The runtime has already been adapted.');
   const tree = parse(source, { ecmaVersion: 'latest', sourceType: 'module', allowHashBang: true });
-  const edits = [], matches = new Map(), functions = new Map();
-  let pollerName = null;
+  const edits = [], matches = new Map(), policyReturns = new Set(), policyMembers = new Map();
   const add = (label, start, end, text) => {
     matches.set(label, (matches.get(label) || 0) + 1); edits.push({ label, start, end, text });
   };
   walk(tree, [], (node, parents) => {
-    if (node.type === 'FunctionDeclaration' && node.id) functions.set(node.id.name, node);
-    if (node.type === 'Property' && (node.key.name || node.key.value) === 'startGrowthBookFlagRefresh' && node.value.type === 'ArrowFunctionExpression') pollerName = node.value.body.name;
+    const enclosing = parentOf(parents, isFunction);
+    if (node.type === 'MemberExpression' && enclosing?.type === 'FunctionDeclaration') {
+      const properties = policyMembers.get(enclosing) || new Set();
+      properties.add(node.property.name || node.property.value); policyMembers.set(enclosing, properties);
+    }
+    if (node.type === 'ReturnStatement' && node.argument?.type === 'ObjectExpression' && enclosing?.type === 'FunctionDeclaration') {
+      const properties = new Set(node.argument.properties.map(p => p.key?.name || p.key?.value));
+      if (['stop', 'refreshNow', 'whenReady', 'rearmHold'].every(key => properties.has(key))) policyReturns.add(enclosing);
+    }
     const value = node.type === 'Literal' ? node.value : node.type === 'TemplateElement' ? node.value.cooked : null;
     if (typeof value !== 'string') return;
     if (value === 'This build requires signing in with your Claude account. API keys are not supported.') {
@@ -73,10 +79,11 @@ export function adaptBackend(source) {
       }
     }
   });
-  const poller = functions.get(pollerName);
-  invariant(poller?.body.type === 'BlockStatement', 'adapter_required', 'Feature-policy polling boundary changed.');
+  const pollers = [...policyReturns].filter(fn => ['flagKeys', 'caFetch', 'pollIntervalMs'].every(key => policyMembers.get(fn)?.has(key)));
+  invariant(pollers.length === 1 && pollers[0].body.type === 'BlockStatement', 'adapter_required', 'Feature-policy polling boundary changed or is ambiguous.');
+  const poller = pollers[0];
   add('local-feature-policy', poller.body.start + 1, poller.body.start + 1,
-    `if(${local})return{stop:()=>{},refreshNow:async()=>null,whenReady:async()=>{},rearmHold:()=>{}};`);
+    `if(${local})return{stop:()=>{},refreshNow:async()=>null,whenReady:async()=>{},rearmHold:()=>{},forgetKeptUseCases:()=>{}};`);
   for (const label of ['api-key-gate', 'credential-resolver', 'loopback-local-entry', 'local-auth-status', 'local-account-isolation', 'local-feature-policy', 'daemon-process-identity']) {
     invariant(matches.get(label) === 1, 'adapter_required', `Adapter expected one ${label} boundary; found ${matches.get(label) || 0}. No partial patch was written.`);
   }

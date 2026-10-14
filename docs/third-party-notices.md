@@ -11,8 +11,9 @@ not included in this source repository.
 
 Runtime dependencies are pinned in package-lock.json and retain their own
 licenses: Acorn (JavaScript parsing), node-tar (bounded archive extraction),
-Undici (HTTP/proxy transport), and Cheerio (HTML search-result parsing), plus
-their transitive dependencies.
+Undici (HTTP/proxy transport), Cheerio (HTML parsing), Ajv and ajv-formats
+(JSON Schema validation, MIT), ipaddr.js (IP classification, MIT), PDF.js via
+pdfjs-dist (PDF text parsing, Apache-2.0), plus their transitive dependencies.
 
 The standalone extraction format was cross-checked against the public Bun
 module-graph format and [can1357/unbun](https://github.com/can1357/unbun), an MIT
@@ -26,3 +27,7 @@ an explicit trust update.
 
 Web search uses DuckDuckGo's public HTML endpoint and returns source titles,
 URLs and bounded excerpts. It does not bypass challenges or access controls.
+Public web fetching uses Cloudflare's public HTTPS DNS endpoint when the user
+configured a proxy, so synthetic local DNS answers are not mistaken for real
+destinations. It sends only the public hostname, never provider keys or document
+content. Retrieved pages and documents retain their own copyrights.

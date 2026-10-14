@@ -4,6 +4,13 @@ import { toOpenAI, fromOpenAI, toolInput, usage } from '../src/protocol/messages
 import { events } from '../src/protocol/sse.mjs';
 
 const profile = { model: 'test-model' };
+test('MiMo official endpoints preserve thinking mode without guessing from the model name', () => {
+  const input = { max_tokens: 100, messages: [{ role: 'user', content: 'hello' }], thinking: { type: 'disabled' } };
+  const mimo = { provider: 'openai-compatible', baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1', model: 'mimo-v2.6-flash' };
+  assert.deepEqual(toOpenAI(input, mimo).thinking, { type: 'disabled' });
+  assert.deepEqual(toOpenAI({ ...input, thinking: { type: 'adaptive' } }, mimo).thinking, { type: 'enabled' });
+  assert.equal(toOpenAI(input, { ...mimo, baseUrl: 'https://unrelated.test/v1' }).thinking, undefined);
+});
 test('DeepSeek preserves an omitted Anthropic thinking mode for forced background tools', () => {
   const input = { max_tokens: 100, messages: [{ role: 'user', content: 'Report the input file.' }],
     tools: [{ name: 'report_input_files', input_schema: { type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'] } }],

@@ -17,7 +17,7 @@
 - 高级设置可打开原版前端、停止程序、检查更新及恢复之前版本。
 
 CS-Switch 不按版本号白名单限制安装；按实际程序结构、启动、安全沙箱和
-工具环境检查兼容性。目前已验证 Claude Science **0.1.47、0.1.60**。
+工具环境检查兼容性。目前已验证 Claude Science **0.1.47、0.1.60、0.1.62**。
 这不等于所有未来版本均已验证。当前支持 Linux x64 / Windows 下 Ubuntu WSL；
 原生 Windows/macOS 可执行文件尚需平台适配。
 
@@ -43,8 +43,10 @@ does not redistribute that executable, its application bundle, or its assets.
 - Text/image inputs, JSON tool schemas, tool results, streaming and usage mapping.
 - Original Python, R, MCP, skills, files, artifacts and agent execution remain in
   Claude Science, with its sandbox and execution/network/file approval workflow.
-- An explicit web-search adapter for OpenAI providers, since Anthropic's hosted
-  search tool is not part of the OpenAI Chat Completions protocol.
+- Shared search/page/PDF adapters for OpenAI and Anthropic-compatible providers;
+  text/PDF document inputs, locally validated structured JSON, and mixed web/client
+  tool continuation. See the [task capability matrix](docs/task-capabilities.md)
+  for exact behavior, actual acceptance and limits.
 - Automatic release discovery, official RSA signature/SHA-256 verification,
   bounded extraction, semantic adapter checks and immutable runtime releases.
 - Update only while idle; copy the stopped data generation before migration;

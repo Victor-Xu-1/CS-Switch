@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { invariant, BridgeError } from '../core/errors.mjs';
+import { structuredOutput } from './structured-output.mjs';
+import { reasoningControls } from './provider-controls.mjs';
 
 const unsupported = (type) => { throw new BridgeError('unsupported_feature', `The selected OpenAI adapter does not support content type ${String(type).slice(0, 60)}. Use a native Anthropic provider for this request.`); };
 function textBlocks(value) {
@@ -19,13 +21,14 @@ export function validateMessages(input) {
   invariant(input.stream === undefined || typeof input.stream === 'boolean', 'invalid_stream', 'stream must be a boolean.');
 }
 
-export function toOpenAI(input, profile) {
+export function toOpenAI(input, profile, format = structuredOutput(input, profile)) {
   validateMessages(input);
-  for (const field of ['container', 'mcp_servers', 'context_management', 'output_format', 'betas']) {
+  for (const field of ['container', 'mcp_servers', 'context_management', 'betas']) {
     if (input[field] != null) unsupported(field);
   }
   const messages = [];
   if (input.system) messages.push({ role: 'system', content: textBlocks(input.system) });
+  if (format) messages.push({ role: 'system', content: format.instruction });
   for (const message of input.messages) {
     invariant(['assistant', 'user'].includes(message.role), 'invalid_role', 'Unexpected message role.');
     const blocks = typeof message.content === 'string' ? [{ type: 'text', text: message.content }] : message.content;
@@ -37,11 +40,11 @@ export function toOpenAI(input, profile) {
       else if (block.type === 'tool_use' || block.type === 'server_tool_use') {
         invariant(message.role === 'assistant' && typeof block.id === 'string' && typeof block.name === 'string', 'invalid_tool', 'Invalid tool call.');
         tools.push({ id: block.id, type: 'function', function: { name: block.name, arguments: JSON.stringify(block.input ?? {}) } });
-      } else if (block.type === 'tool_result' || block.type === 'web_search_tool_result') {
+      } else if (block.type === 'tool_result' || ['web_search_tool_result', 'web_fetch_tool_result'].includes(block.type)) {
         invariant(message.role === 'user' && typeof block.tool_use_id === 'string', 'invalid_tool', 'Invalid tool result.');
         // Preserve error semantics explicitly; OpenAI tool messages have no is_error field.
         let result;
-        if (block.type === 'web_search_tool_result') result = JSON.stringify(block.content);
+        if (['web_search_tool_result', 'web_fetch_tool_result'].includes(block.type)) result = JSON.stringify(block.content);
         else if (typeof block.content === 'string') result = block.content;
         else {
           const output = [];
@@ -70,22 +73,8 @@ export function toOpenAI(input, profile) {
     }
   }
   const body = { model: profile.model, messages, max_tokens: input.max_tokens, stream: Boolean(input.stream) };
-  if (input.thinking?.type && input.thinking.type !== 'disabled') {
-    const effort = input.output_config?.effort || 'medium';
-    if (profile.provider === 'deepseek') body.thinking = { type: 'enabled' };
-    else if (profile.provider === 'qwen') body.enable_thinking = true;
-    else body.reasoning_effort = effort === 'max' ? 'high' : effort;
-  } else if (input.thinking?.type === 'disabled' || profile.provider === 'deepseek') {
-    // Claude's background/forced-tool requests omit thinking. DeepSeek enables
-    // it by default and rejects named/required tools in that mode. Preserve the
-    // source request's non-thinking semantics explicitly, never drop tool choice.
-    if (profile.provider === 'deepseek') body.thinking = { type: 'disabled' };
-    else if (profile.provider === 'qwen') body.enable_thinking = false;
-  }
-  if (input.output_config?.format) {
-    invariant(input.output_config.format.type === 'json_schema', 'unsupported_feature', 'Unsupported structured output format.');
-    body.response_format = { type: 'json_schema', json_schema: { name: 'response', schema: input.output_config.format.schema, strict: true } };
-  }
+  Object.assign(body, reasoningControls(input, profile));
+  if (format?.responseFormat) body.response_format = format.responseFormat;
   if (body.stream) body.stream_options = { include_usage: true };
   for (const key of ['temperature', 'top_p']) if (input[key] !== undefined) body[key] = input[key];
   if (input.top_k !== undefined) unsupported('top_k');

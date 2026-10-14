@@ -27,6 +27,7 @@ export class Connection {
     invariant(await this.manager.runtime.idle(), 'runtime_busy', 'Wait for the current task to finish before changing models.', 409);
   }
   async connect(input, { signal } = {}) {
+    signal = AbortSignal.any([AbortSignal.timeout(120000), ...(signal ? [signal] : [])]);
     signal?.throwIfAborted();
     invariant(!this.busy, 'connection_busy', 'A connection test is already running.', 409);
     this.busy = true;

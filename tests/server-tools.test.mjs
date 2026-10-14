@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ServerTools, prepareServerTools } from '../src/gateway/server-tools.mjs';
-import { openAIConversation } from '../src/gateway/openai-conversation.mjs';
+import { taskConversation } from '../src/gateway/task-conversation.mjs';
 import { Writable } from 'node:stream';
 
 const html = '<div class="result"><a class="result__a" href="https://example.org/paper">Paper</a><div class="result__snippet">An excerpt.</div></div>';
@@ -25,7 +25,7 @@ test('server search continuation uses one tool per round and returns a model ans
   const chunks = [];
   const response = new Writable({ write(chunk, _encoding, callback) { chunks.push(chunk); callback(); } });
   response.writeHead = () => {};
-  await openAIConversation({ input: { model: 'alias', max_tokens: 50, messages: [{ role: 'user', content: 'search' }], tools: [{ name: 'web_search', type: 'web_search_20250305' }] },
+  await taskConversation({ input: { model: 'alias', max_tokens: 50, messages: [{ role: 'user', content: 'search' }], tools: [{ name: 'web_search', type: 'web_search_20250305' }] },
     profile: { model: 'test-model' }, request: { headers: {} }, response, url: 'https://provider.test/v1/chat/completions', headers: {}, signal: new AbortController().signal,
     fetch: async (url, options) => {
       if (url.startsWith('https://html.duckduckgo.com')) return new Response(html);

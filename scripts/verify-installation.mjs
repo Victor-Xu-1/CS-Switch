@@ -12,9 +12,12 @@ const providerIndex = process.argv.indexOf('--provider-home');
 const providerHome = providerIndex >= 0 ? process.argv[providerIndex + 1] : null;
 if (providerIndex >= 0 && (!providerHome || providerHome.startsWith('--'))) throw Error('--provider-home requires the authorized source state directory.');
 const keepRunning = process.argv.includes('--keep-running');
+const portIndex = process.argv.indexOf('--port-base');
+const port = portIndex < 0 ? 19970 : Number(process.argv[portIndex + 1]);
+assert.ok(Number.isInteger(port) && port > 1024 && port < 65532, 'Choose a valid isolated port base.');
 if (await readJson(join(home, 'state.json'), null)) throw Error('Installation verification requires an unused state home; existing data is never replaced.');
 const beforeHash = await hashFile(binary);
-const config = await initialize(home, { port: 19970, appPort: 19971, modelPort: 19972, sandboxPort: 19973,
+const config = await initialize(home, { port, appPort: port + 1, modelPort: port + 2, sandboxPort: port + 3,
   network: { proxy: process.env.HTTPS_PROXY || null } });
 config.update.autoApply = false;
 const service = await serve(config);

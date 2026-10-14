@@ -2,7 +2,10 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { BridgeError, invariant, publicError } from '../core/errors.mjs';
 import { validateMessages } from '../protocol/messages.mjs';
-import { openAIConversation } from './openai-conversation.mjs';
+import { taskConversation } from './task-conversation.mjs';
+import { PublicWeb } from './public-web.mjs';
+import { hasDocuments } from '../protocol/documents.mjs';
+import { WebEvidence } from './web-evidence.mjs';
 import { sendEvent } from '../protocol/sse.mjs';
 
 export function modelUrl(profile) {
@@ -13,12 +16,15 @@ export function modelUrl(profile) {
 
 export class ModelProxy {
   active = 0;
-  constructor(profiles, options = {}) { this.profiles = profiles; this.timeoutMs = options.timeoutMs || 120000; this.limit = options.limit || 8; this.fetch = options.fetch || fetch; }
+  constructor(profiles, options = {}) {
+    this.profiles = profiles; this.timeoutMs = options.timeoutMs || 300000; this.limit = options.limit || 8;
+    this.fetch = options.fetch || fetch; this.web = options.web || new PublicWeb({ proxy: options.proxy });
+    this.evidence = options.evidence || new WebEvidence(options.home);
+  }
   async dispatch(input, request, response, selectedProfile = null, externalSignal = null) {
     invariant(this.active < this.limit, 'busy', 'Model gateway concurrency limit reached. Retry when a request completes.', 429);
     const profile = selectedProfile || await this.profiles.active();
     validateMessages(input);
-    const body = { ...input, model: profile.model };
     const headers = { 'content-type': 'application/json', accept: input.stream ? 'text/event-stream' : 'application/json' };
     if (profile.protocol === 'anthropic') {
       headers['anthropic-version'] = request.headers['anthropic-version'] || '2023-06-01';
@@ -33,10 +39,11 @@ export class ModelProxy {
     response.on('close', disconnected);
     this.active++;
     try {
-      if (profile.protocol === 'openai') {
-        await openAIConversation({ input, profile, request, response, fetch: this.fetch, url: modelUrl(profile), headers, signal });
+      if (profile.protocol === 'openai' || hasDocuments(input) || input.tools?.some(tool => /^web_(search|fetch)_/.test(tool.type)) || input.output_config?.format || input.output_format) {
+        await taskConversation({ input, profile, request, response, fetch: this.fetch, web: this.web, evidence: this.evidence, url: modelUrl(profile), headers, signal });
         return;
       }
+      const body = { ...await this.evidence.restore(input), model: profile.model };
       const upstream = await this.fetch(modelUrl(profile), { method: 'POST', headers, body: JSON.stringify(body), signal, redirect: 'error' });
       if (!upstream.ok) {
         await upstream.body?.cancel();

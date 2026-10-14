@@ -41,7 +41,7 @@ update, allowing the client to reconnect after activation.
 
 ## Protocol contract
 
-Anthropic-compatible providers receive native Messages content and live SSE.
+Ordinary Anthropic-compatible requests retain native Messages content and live SSE.
 OpenAI providers receive Chat Completions, with JSON schemas and tool arguments
 preserved. Invalid JSON arguments, unsupported blocks, truncated streams and
 unknown stop reasons fail explicitly. Missing usage is unknown, not free usage.
@@ -80,11 +80,30 @@ which rejects forced/required tool selection. The adapter preserves the requeste
 tool and arguments rather than dropping that requirement or silently retrying.
 Explicit adaptive/enabled thinking requests remain enabled.
 
-Anthropic-hosted web search is represented as an ordinary function for an
-OpenAI provider and executed by the gateway's explicit DuckDuckGo HTML search
-adapter. It preserves source URLs and bounds queries, response size, results
-and tool rounds. Challenges/unrecognized responses are errors, never invented
-results. Native Anthropic endpoints must support the server tools they receive.
+Both provider protocols use one task conversation loop for emulated search/fetch,
+document conversion and structured output. Native web-tool turns are buffered;
+ordinary native SSE is still passed through. Search uses DuckDuckGo public HTML;
+fetch validates/pins public destinations, follows bounded policy-checked redirects,
+and reads HTML/text/PDF without executing page scripts. Search-enabled requests
+receive a bridge reader when they have no reader already. Client tools remain
+under the original application and its approvals; mixed responses carry completed
+web receipts and pending client calls back to it. Later provider turns preserve
+those receipts and their tool-call identities.
+
+Some original releases strip unfamiliar hosted-tool blocks when constructing the
+next model/reviewer request. Successful page reads therefore also return a compact
+source link whose opaque fragment identifies a private bounded bridge evidence
+record. Before inference the bridge restores missing source content from that
+record. Rich receipts remain available to the original UI; their presence avoids
+duplicating content during restoration. Evidence is bound to its exact source URL,
+survives bridge restart, and expires explicitly rather than fabricating a result.
+
+PDF parsing runs in an isolated bounded worker. JSON output is checked against
+its source schema before success is delivered, including when the caller requested
+SSE. There is no output coercion, silent schema relaxation, duplicate model path or
+automatic retry. Document/media limits and the supported schema/web contracts are
+specified in [task capabilities](task-capabilities.md). Unknown hosted execution
+tools continue to fail explicitly; local Python/R/MCP are not replaced.
 
 Not every provider-specific feature has a universal equivalent. Unsupported
 server tools, cloud-only account services, model modalities or context limits
