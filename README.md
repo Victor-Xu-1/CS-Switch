@@ -1,226 +1,77 @@
-# CS-Switch (Claude science-Switch)
+# CS-Switch
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+**Choose a model. Keep your scientific workflow.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-10b981.svg)](LICENSE)
+[![Platform: Linux and WSL](https://img.shields.io/badge/Platform-Linux%20x64%20%2F%20WSL-2563eb.svg)](#get-started)
+
+CS-Switch (Claude science-Switch) is an independent local compatibility workbench for using third-party LLMs inside Claude Science. Connect a model, test the connection, then continue working in the original scientific application with its tools, files and task interface.
+
+在本地工作台选择第三方模型，继续使用 Claude Science 的科学工具、文件与任务界面。工作台支持中文 / English，语言选择会保留。
+
+[中文快速使用](#中文快速使用) · [Use cases](#what-you-can-do) · [Get started](#get-started) · [Capabilities & limits](docs/task-capabilities.md) · [Verification](docs/verification.md)
+
+![Conceptual workflow: choose a model, connect and test in CS-Switch, then work in Claude Science](docs/product-flow.svg)
+
+*Conceptual product workflow, not an application screenshot or scientific result.*
+
+> **Independent compatibility software.** This is not an official Anthropic product. You supply your own original Claude Science / Operon executable. Its binaries, assets, trademarks, licenses and services remain separate and are not distributed here.
 
 ## 中文快速使用
 
-首版 **v0.0.1**。工作台支持中文 / English，语言选择会保留。
+1. **连接原版程序**：自动查找本机安装，或填写原版可执行文件路径。原版程序保留，工作台使用独立受管理副本；导入已有数据前需退出原版
+2. **连接并测试模型**：选择模型、填写密钥并点击“连接并测试”。只有收到真实回复后才保存切换；失败时保留之前的连接
+3. **继续科学任务**：点击“打开 Claude Science”或“启动并打开”，从新任务开始。第三方模型负责推理，原版程序执行科学工具并保留其沙箱与审批流程
 
-自 **v0.0.2** 起，CS-Switch 的自有源码以 [MIT 许可证](LICENSE)开源。
-原版 Claude Science / Operon 不随项目分发，其许可证与服务条款保持独立。
+当前支持 **Linux x64 / Windows 下 Ubuntu WSL**。原生 Windows / macOS 可执行文件仍需平台适配。当前产品版本见 [package.json](package.json)，它与 Claude Science 的版本相互独立。
 
-- 首次使用：自动查找本机安装，也可填写程序路径，点击“连接程序并启动”。
-  原版程序和数据会保留，使用独立受管理副本；导入已有数据前需退出原版。
-- 选择第三方模型并填写密钥，点击“连接并测试”。只有收到真实回复后才
-  保存并切换；失败时保持之前的连接，不会半途更换正在执行任务的模型。
-- 以后直接点击“打开 Claude Science”；程序未运行时显示“启动并打开”。
-- 高级设置可打开原版前端、停止程序、检查更新及恢复之前版本。
+## What you can do
 
-CS-Switch 不按版本号白名单限制安装；按实际程序结构、启动、安全沙箱和
-工具环境检查兼容性。目前已验证 Claude Science **0.1.47、0.1.60、0.1.62**。
-这不等于所有未来版本均已验证。当前支持 Linux x64 / Windows 下 Ubuntu WSL；
-原生 Windows/macOS 可执行文件尚需平台适配。
+- **Bring a compatible model into an existing workflow.** Connect OpenAI Chat Completions or Anthropic Messages-compatible providers, including a suitable local model
+- **Keep scientific tools close to the task.** Work through the original Python, R, MCP, skills, files, artifacts and agent execution paths, with the original sandbox and approvals
+- **Use documents and web evidence where supported.** The bridge handles supported text/PDF input, public search/page reading, structured JSON and mixed web/client-tool continuation. Exact behavior and limits are in the [capability matrix](docs/task-capabilities.md)
+- **Manage the application from one local entry.** Discover an installation, connect and test a model, start or stop the managed application, and open the original frontend
+- **Recover from a rejected update.** Candidates are validated before activation; idle-only updates retain the previous runtime and its matching data snapshot for rollback
 
-停止程序不会停止工作台，也不会删除数据；有任务运行时拒绝停止。
-第三方模型仍须支持相应工具调用、上下文长度和模态，外部服务可能需要独立密钥。
+## Designed for careful switching
 
-## Overview
+A failed connection test leaves the working connection in place. Switching does not change the model in the middle of a running task. API keys are encrypted locally and are never returned to the browser; changing the API address requires entering the key again.
 
-Configure a third-party LLM in a small local workbench, then use that model
-inside Claude Science to run scientific tasks. CS-Switch manages the model
-gateway, compatible upstream versions, and recoverable application data.
+Stopping the managed application leaves the workbench available and preserves data. Stop requests are rejected while a task is active. Rollback returns to the prior runtime and its prior data snapshot; newer work stays in its newer generation and does not appear in the older snapshot.
 
-**This is independent compatibility software, not an official Anthropic product.**
-You install your own original Claude Science / Operon executable. The repository
-does not redistribute that executable, its application bundle, or its assets.
+CS-Switch checks compatibility through the actual application structure and runtime behavior. The [verification record](docs/verification.md) documents Claude Science **0.1.47, 0.1.60 and 0.1.62**, with specific provider/tool acceptance runs. These observations do not establish compatibility with every future version, model or scientific task.
 
-## What it does
+## Get started
 
-- OpenAI Chat Completions and Anthropic Messages model connections.
-- Provider profiles with locally encrypted API keys and one active selection.
-- English/Chinese workbench with a single connect-and-test action, persistent
-  language preference, local installation discovery, and start/stop/open controls.
-- Text/image inputs, JSON tool schemas, tool results, streaming and usage mapping.
-- Original Python, R, MCP, skills, files, artifacts and agent execution remain in
-  Claude Science, with its sandbox and execution/network/file approval workflow.
-- Shared search/page/PDF adapters for OpenAI and Anthropic-compatible providers;
-  text/PDF document inputs, locally validated structured JSON, and mixed web/client
-  tool continuation. See the [task capability matrix](docs/task-capabilities.md)
-  for exact behavior, actual acceptance and limits.
-- Automatic release discovery, official RSA signature/SHA-256 verification,
-  bounded extraction, semantic adapter checks and immutable runtime releases.
-- Update only while idle; copy the stopped data generation before migration;
-  retain the prior runtime and its matching data for rollback.
-- Stable application URL: `http://127.0.0.1:8000/`.
-- Configuration workbench: `http://127.0.0.1:8000/_bridge/`.
-
-Compatibility is verified, not assumed. A future upstream signing key, binary
-layout, identity flow, API or tool protocol can change. An unsupported change
-blocks the candidate and retains the current version. There is no promise that
-every future version or every model supports every feature without adaptation.
-
-## Requirements
-
-- Linux x64 or Ubuntu under WSL. Native Windows/macOS process management is not
-  implemented in this release.
-- Node.js >=22.19, npm, Bun, bubblewrap, socat and the prerequisites required by
-  your original Claude Science installation.
-- A tool-calling model with enough context for the original scientific prompts.
-  Visual tools additionally require a model that accepts images.
-- Provider API access; a local model may use a loopback URL without a key.
-
-## Install alongside your original executable
+You need Linux x64 or Ubuntu under WSL, **Node.js ≥22.19**, npm, Bun, bubblewrap, socat, and the prerequisites for your own original Claude Science installation. Use a tool-calling model with enough context; visual tools also need image support. Provider charges and separate service accounts may apply.
 
 ```bash
+git clone https://github.com/Victor-Xu-1/CS-Switch.git
+cd CS-Switch
 npm ci
 node src/cli.mjs init
-node scripts/install-service.mjs
+node src/cli.mjs serve
 ```
 
-Open the workbench at `http://127.0.0.1:8000/_bridge/`. It works even before
-Claude Science is attached or running. Choose a detected installation, or enter
-its original executable path. Common Linux/WSL locations are scanned without
-executing discovered files. An unlisted installation can be selected manually.
+Open **http://127.0.0.1:8000/_bridge/** to attach your installation and connect a model. The original application opens at **http://127.0.0.1:8000/**. Close the original application first if it occupies port 8000 or you want to import its data.
 
-Close the original application first if it occupies port 8000 or you want to
-import its data. Existing data is optional: a blank data path creates a fresh
-workspace. The importer refuses an in-use data directory and preserves the
-original executable. It starts only a separate extracted/validated managed copy.
-The adapter does not replace the scientific application with a chat demo.
+For a persistent systemd user service, use `node scripts/install-service.mjs` instead of the foreground `serve` command. It refuses to overwrite an existing unit. Keep credentials and runtime data outside the source checkout.
 
-The installer creates and enables a `cs-switch.service` systemd user service.
-It refuses to overwrite an existing unit. It does not stop unrelated services.
-For a foreground run, use `node src/cli.mjs serve` instead.
+[Full installation and connection guide](docs/getting-started.md) · [Updates, rollback and recovery](docs/operations.md)
 
-Advanced CLI equivalents remain available: `adopt --binary PATH`, followed by
-`bootstrap --release ID --data STOPPED_DATA_PATH`. Both use the same extraction,
-adapter and release registry as the workbench. Native Windows/macOS binaries are
-reported as requiring a platform adapter, never falsely shown as compatible.
+## Know the boundaries
 
-`CS_SWITCH_HOME` (or `--home PATH`) chooses the state directory. The default is
-`~/.local/share/cs-switch`. Run one service per home; systemd uses `flock` for
-ownership. No credentials or runtime data belong inside the source checkout.
-Keep this path short: the original application's Unix socket paths must fit
-within 108 bytes. An overlong path is reported before activation.
+A successful connection is the first check. Tool execution and scientific validity require their own evidence. The interface distinguishes configured, connection-tested, tool-tested and scientifically validated states.
 
-## Connect a model
+- A model must support the task's tools, context and modalities; some hosted tools and provider-specific features need additional adapters
+- Text extraction from PDFs is not OCR or visual interpretation. Public search/page access depends on the source website; authenticated browsing and JavaScript browser automation are not reproduced
+- External services still need their own authorized accounts or keys. The original application's displayed prices are not authoritative third-party billing
+- Unsupported upstream changes retain the current version. There is no promise that future signing keys, binary layouts, identity flows or protocols will work without adaptation
 
-1. Select a provider, enter its model ID/key and click **Connect & test**. Common
-   API addresses are prefilled; custom addresses are under Connection details.
-   One short real inference checks the draft before atomically activating it.
-2. Click **Open Claude Science** (or **Start & open** when stopped). Start a new task. The selected provider
-   handles model inference, including subagents and reviewers; the original
-   application executes its tools.
+[Exact capability boundaries](docs/task-capabilities.md) · [Observed verification](docs/verification.md)
 
-For DeepSeek, use `https://api.deepseek.com/v1` with the model ID offered by your
-account. For an Anthropic-compatible endpoint, use its API root or `/v1` root.
-OpenAI-compatible URLs must end at the versioned API base, before
-`/chat/completions`.
+## License
 
-The interface intentionally separates **configured**, **connection tested**,
-**tool execution tested**, and **scientifically validated**. A successful HTTP
-request or example session is not evidence that a real task succeeded.
+CS-Switch's first-party source is [MIT-licensed](LICENSE). Dependencies keep their licenses. Claude Science / Operon and external services are not relicensed or included; see [third-party notices](docs/third-party-notices.md).
 
-Keys are never returned to the browser. A blank key field preserves the saved
-key only while the API address remains unchanged. A new address requires explicit
-key entry so saved credentials cannot be forwarded accidentally. Cancelling a
-connection test aborts its request; the workbench reloads the actual saved state.
-Language changes never translate model IDs or scientific
-data. English is the default for a fresh/invalid preference.
-
-## Network and environment setup
-
-The original runtime owns Conda installation and its environment manifests.
-CS-Switch shows their live state. If the host requires an HTTP proxy, set
-`network.proxy` in the external `config.json`, for example:
-
-```json
-"network": { "proxy": "http://127.0.0.1:7890" }
-```
-
-Restart the service after editing configuration. This setting is used by release
-downloads, provider requests and the runtime's package installer. Loopback
-traffic stays direct. TLS validation and the runtime sandbox remain enabled.
-Do not assume the example proxy port is present on another computer.
-
-## Update and rollback
-
-By default, the running service checks the pinned official `latest` channel
-every six hours and activates only a validated, idle candidate. Use the
-workbench or the CLI to check immediately:
-
-```bash
-node src/cli.mjs check
-node src/cli.mjs status
-node src/cli.mjs rollback
-```
-
-Rollback selects the previous runtime **and its previous data snapshot**. Work
-created after the upgrade remains in the newer generation but is not present in
-the older snapshot. Generations are not automatically deleted. See
-[operations](docs/operations.md) for recovery and [architecture](docs/architecture.md)
-for trust boundaries. The installation/validation record is in
-[verification](docs/verification.md).
-
-The [quality standard and audit](docs/quality.md) records interface, accessibility,
-security and responsiveness checks, including their limits. Award names are
-quality aspirations, not claims of recognition.
-
-## Focused development checks
-
-```bash
-npm run check
-npm run check:version
-node scripts/test-scope.mjs YOUR_40_CHARACTER_BASE_COMMIT_SHA --list
-node scripts/test-scope.mjs YOUR_40_CHARACTER_BASE_COMMIT_SHA
-```
-
-The selector follows changed files and their import dependants, plus explicit
-HTTP/UI/lifecycle relationships. Review `--list` first. PR CI uses its exact base
-commit and runs only affected contracts; it never defaults to a global suite.
-Syntax checking is separate from executing tests. Group scripts remain available
-for an explicitly scoped protocol, update or workbench investigation.
-The `scripts/verify-scientific-tools.mjs` integration tool uses a clearly marked
-local model-wire fixture with real application tool execution. It is not a real
-external-model or scientific-quality benchmark.
-
-`node scripts/verify-installed.mjs` performs read-only runtime/frontend/sandbox/
-environment checks. `verify-installation.mjs ORIGINAL_BINARY NEW_ISOLATED_HOME`
-tests attachment, stop/start and frontend access with isolated data, not a paid
-model request.
-
-For explicitly authorized real-model acceptance, append
-`--provider-home EXISTING_CS_SWITCH_HOME --keep-running` to the installation
-verifier. This reuses the active provider at its unchanged address, sends one
-short connection probe, and keeps the isolated original frontend open for a real
-task. Provider charges apply; credentials stay encrypted outside Git. Stop with
-SIGTERM after the task is idle. Without these flags no provider is copied/called.
-`preview-workbench.mjs NEW_HOME RELEASE_DIRECTORY RELEASE_ID` is a separate,
-clearly labelled local fixture for UI error/cancellation checks, not real-model
-acceptance.
-
-## Version and PR policy
-
-CS-Switch starts at **v0.0.1**. Each PR increments the smallest field exactly
-once relative to the current base: v0.0.1 → v0.0.2 → v0.0.3. Fields carry at 99:
-v0.0.99 → v0.1.0 and v0.99.99 → v1.0.0. This is the user's sequential PR release
-counter; schema/API compatibility is tracked independently.
-
-Run `npm run version:next` once per new PR. Further commits in that PR do not bump
-again. Before merging an overlapping/stale PR, update its base and choose the
-next unused number. CI checks package/lockfile consistency and requires exactly
-the next number against the PR base. Display versions and Git tags use a `v`
-prefix; package.json stores the numeric authority. Claude Science's upstream
-version and its automatic updates do not increment the CS-Switch version.
-
-## License and distribution boundary
-
-CS-Switch's first-party source is available under the [MIT License](LICENSE).
-Dependencies retain their own licenses. Claude Science / Operon binaries,
-application code, assets, trademarks and services are not relicensed by this
-project and are not included in the repository. See
-[third-party notices](docs/third-party-notices.md).
-
-The `private: true` package flag only prevents accidental npm publication; it
-does not limit the MIT license or public GitHub access. This release does not
-publish a package to npm.
+The repository is public source; this release does not publish an npm package.
